@@ -1,210 +1,154 @@
 #include<iostream>
+#include<sys/stat.h>
 #include<cstdio>
-#include<ios>
 #include<iomanip>
 #include<fstream>
-#include<cstring>
-#include "other/common.hpp"
+#include<climits>
+#include "ga/ga.hpp"
+#include "ga/parameter.hpp"
+#include "other/random.hpp"
 #include "other/command_line_argument.hpp"
+#include "other/directory.hpp"
 #include "ga/other/meta_observer.hpp"
-#include "ga/other/local_search.hpp"
-#include "ga/group.hpp"
-#include "io/edges_file_reader.hpp"
-#include "io/edges_file_writer.hpp"
-#include "test/unit_test.hpp"
-
 using namespace std;
 
-/* Prameter Setting ------------------------------------------------ */
-const int COLUMN_NUM = 10;
-const int ROW_NUM = 10;
-const int DEGREE = 4;
-const int MAX_LENGTH = 2;
-
-const int MAX_GENERATION = 300;
-const int GROUP_SIZE = 100;
-const int CREATED_CHILD_NUM = 100;
-const double INDIV_MUTATE_PROBABILITY = 0.01;
-const double GENE_MUTATE_PROBABILITY = 0.05;
-
-int NUM_LOCAL_SEARCH = COLUMN_NUM * ROW_NUM * 10;
-/* ------------------------------------------------------------------ */
-
-double transition();
-void unitTest();
-void repeat(int numLoop);
-void findNotSearchedEdges();
-void coutHedder();
-void coutGroup(int generationNum, const Group& group);
-void ofstreamGroup(ofstream& ofs, int generationNum, const Group& group);
-void showArguments();
-
-int main(int argc, char* argv[]) {
-    initRand();
-
-    if(argc == 1) {
-        transition();
-    }
-    else {
-        CommandLineArgument args(argc, argv);
-        if(args.existOption("-help")) showArguments();
-        else if(args.existOption("-test")) unitTest();
-        else if(args.existOption("-repeat")) {
-            int numLoop = stoi(args.getValue("-repeat"));
-            repeat(numLoop);
-        }
-        else if(args.existOption("-analyse")) findNotSearchedEdges();
-        else  cout << "Invalid command line argument" << endl;
-    }
-}
-
-double transition() {
-    Group::setParameter(GROUP_SIZE, CREATED_CHILD_NUM);
-    GridGraph::setParameter(COLUMN_NUM, ROW_NUM, DEGREE, MAX_LENGTH);
-    Mutater_Base::SetParameter(INDIV_MUTATE_PROBABILITY, GENE_MUTATE_PROBABILITY);
-
-    //ofstream ofs("test.csv");
-    Group group;
-    group.createRandomIndivs();
-    group.doLocalSearch = false;
-
-    coutHedder();
-    coutGroup(0, group);
-
-    int notRefineCount = 0;
-    for (int i = 1; i <= MAX_GENERATION; ++i) {
-        group.changeGeneration();
-        coutGroup(i, group);
-
-        //if(i % 10 == 0) ofstreamGroup(ofs, i, group);
-
-        //group.createBestEdgesFile("test.edges");
-
-        if(MetaObserver::childVariation() < 1) {
-            notRefineCount++;
-            if(notRefineCount == 10) break;
-        }
-        else notRefineCount = 0;
-    }
-
-    //ofstreamGroup(ofs, MAX_GENERATION, group);
-    group.createBestEdgesFile(
-        to_string(COLUMN_NUM) + "_" + to_string(ROW_NUM) +
-        to_string(DEGREE) + "_" + 
-        to_string(MAX_LENGTH) + "_" + 
-        to_string(group.bestASPL()) + ".edges"
-    );
-
-    return group.bestASPL();
-}
-
-void repeat(int numLoop) {
-    double* aspl = new double[numLoop];
-    for(int i = 0; i < numLoop; ++i) {
-        cout << "=== Case" << i + 1 << " ===" << endl;
-        aspl[i] = transition();
-        cout << endl;
-    }
-
-    double sum = 0;
-    for(int i = 0; i < numLoop; ++i) sum += aspl[i];
-
-    cout << fixed;
-    for(int i = 0; i < numLoop; ++i) cout << setprecision(15) << aspl[i] << endl;
-    cout << "average" << endl;
-    cout << setprecision(15) << sum / numLoop << endl;
-
-    delete[] aspl;
-}
-
-void unitTest() {
-    UnitTest tester;
-    tester.adjAsplTest();
-}
-
-void findNotSearchedEdges() {
-    string fileName;
-    const int NUM_NODE = COLUMN_NUM * ROW_NUM;
-
-    cout << "Input best edges file : "; cin >> fileName;
-    Individual bestIndiv = EdgeFileReader::GenerateIndividual(fileName);
-
-    while(true) {
-        cout << "Input obtained edges file : "; cin >> fileName;
-
-        if(fileName == "quit") break;
-
-        Individual indiv = EdgeFileReader::GenerateIndividual(fileName);
-        for(int n = 0; n < NUM_NODE; ++n) {
-            int numDegree1 = indiv.degrees[n];
-
-            for(int d1 = 0; d1 < numDegree1; ++d1) {
-                int numDegree2 = bestIndiv.degrees[n];
-
-                for(int d2 = 0; d2 < numDegree2; ++d2) {
-                    if(indiv.adjacent[n][d1] == bestIndiv.adjacent[n][d2]) {
-                        bestIndiv.adjacent[n][d2] = -1;
-                    }
-                }
-            }
-        }
-    }
-
-    EdgeFileWriter::save(bestIndiv, "not_searched.edges");
-
-}
-
-void showParameters() {
-
-}
-
-void coutHedder() {
-    cout << left;
-    cout << setw(6) << "Fase";
-    cout << setw(6) << "Diam";
-
-    cout << setw(19) << "Best ASPL";
-    cout << setw(19) << "Average ASPL";
-    cout << setw(19) << "Worst ASPL";
-
-    cout << setw(14) << "Inherit rate";
-    cout << "child variation";
+void showHelp() {
+    cout << "# When there is no argument, genetic algorithm is executed" << endl;
 
     cout << endl;
+    cout << "# -repeat [int] : Repeat executing GA for the specified number of times" << endl;
+
+    cout << endl;
+    cout << "# -show_param : Show current parameter setting" << endl;
+
+    cout << endl;
+    cout << "# -set_param : Switch to setting parameter mode. ([e.g.]./grid -set_param -width 10 -mutate_indiv 0.01)" << endl;
+    cout << "#    -width [int]  : Number of column in a graph" << endl;
+    cout << "#    -height [int] : Number of row in a graph" << endl;
+    cout << "#    -degree [int] : Degree of a graph" << endl;
+    cout << "#    -length [int] : Max edge length in a graph" << endl;
+    cout << "#" << endl;
+    cout << "#    -generation [int] : Max generation in GA" << endl;
+    cout << "#    -population [int] : Individual population of a group" << endl;
+    cout << "#    -offspring [int]  : Number of offsprings created with each crossover" << endl;
+    cout << "#    -mutate_indiv [double] : Mutate probably for each individual" << endl;
+    cout << "#    -mutate_gene [double]  : Mutate probably for each gene" << endl;
+    cout << "#    -cross [string] : Crossover method (\"twx\" or \"gx\")" << endl;
+    cout << "#    -local_search [0 or 1] : Whether to do local search (0:disable, 1:enable)" << endl;
+    cout << "#" << endl;
+    cout << "#    -twx_loop [int] : Number of inheritance in TWX" << endl;
+    cout << "#    -twx_perimeter [double] : Rate of perimeter nodes selection in TWX" << endl;
     
 }
 
-void coutGroup(int generationNum, const Group& group) {
-    const int DIGIT = 15;
+string getTimeString() {
+    time_t t = time(NULL);
+    tm *local = localtime(&t);
 
-    cout << left;
-    cout << setw(6) << generationNum;
-    cout << setw(6) << group.bestDiameter();
+    string year = to_string(local->tm_year + 2000);
+    string month = to_string(local->tm_mon + 1);
+    string day = to_string(local->tm_mday);
+    string hour = to_string(local->tm_hour);
+    string min = to_string(local->tm_min);
+    string sec = to_string(local->tm_sec);
+    if(month.length() == 1) month = "0" + month;
+    if(day.length() == 1) day = "0" + day;
+    if(hour.length() == 1) hour = "0" + hour;
+    if(min.length() == 1) min = "0" + min;
+    if(sec.length() == 1) sec = "0" + sec;
 
+    return year + month + day + hour + min + sec;
+}
+
+double transition(Parameter& param, int seed) {
+    cout << "seed : " << seed << endl << endl;
+    cout << "Initializing..." << endl;
+    Random::init(seed);
+    GeneticAlgorithm ga(param);
+
+    const string RESULT_DIR("result");
+    if(!Directory::exist(RESULT_DIR)) Directory::create(RESULT_DIR);
+    string dirName = RESULT_DIR + "/" + getTimeString();
+    Directory::create(dirName);
+
+    ofstream ofs(dirName + "/parameter.csv");
+    param.writeParam(ofs);
+    ofs << "seed," << seed << endl;
+    ofs.close();
+    
+    GeneticAlgorithm::showHeader();
+    ga.showParameter();
+    while(true) {
+        ga.step();
+        ga.showParameter();
+        if(ga.isFinished()) break;
+    }
+    
+    ga.saveEdgesFile(dirName + "/" + to_string(ga.bestAspl()) + ".edges");
+    return ga.bestAspl();
+}
+
+double transition(Parameter& param) {
+    Random::init();
+    Random random;
+    int seed = random.randomInt(INT_MAX);
+    return transition(param, seed);
+}
+
+void repeat(int numLoop,  Parameter& param, int seed) {
+    double* aspl = new double[numLoop];
+    double* processTimes = new double[numLoop];
+
+    for(int i = 0; i < numLoop; ++i) {
+        cout << "=== Case" << i + 1 << " ===" << endl;
+        aspl[i] = transition(param, seed + i);
+        cout << endl;
+    }
+
+    ofstream ofs(param.getProblemName() + ".csv");
     cout << fixed;
-    cout << setw(19) << setprecision(DIGIT) << group.bestASPL();
-    cout << setw(19) << setprecision(DIGIT) << group.averageASPL();
-    cout << setw(19) << setprecision(DIGIT) << group.worstASPL();
+    for(int i = 0; i < numLoop; ++i)  {
+        cout << setprecision(15) << aspl[i] << " " << processTimes[i] << endl;
+        ofs << aspl[i] << "," << processTimes[i] << endl;
+    }
 
-    cout << setw(14) << setprecision(5) << MetaObserver::inharitRate();
-    cout << setw(14) << setprecision(3) << MetaObserver::refineRate();
-
-    cout << defaultfloat;
-    cout << MetaObserver::childVariation() << endl;
+    delete[] aspl;
+    delete[] processTimes;
 }
 
-void ofstreamGroup(ofstream& ofs, int generationNum, const Group& group) {
-    ofs << generationNum << ",";
-    ofs << group.bestDiameter() << ",";
-    ofs << group.bestASPL() << ",";
-    ofs << group.averageASPL() << ",";
-    ofs << group.worstASPL() << endl;
+void repeat(int numLoop,  Parameter& param) {
+    Random::init();
+    Random random;
+    int seed = random.randomInt(INT_MAX);
+    repeat(numLoop, param, seed);
 }
 
-void showArguments() {
-    cout << "[Command Line Arguments]" << endl;
-    cout << "-transition : Execute GA and show transition of GA parameter by generation" << endl;
-    cout << "    -skipCSV       : skip output transition to CSV file" << endl;
-    cout << "    -skipEdgesFile : skip output result to edges File" << endl;
-    cout << "-test       : Unit test" << endl;
+int main(int argc, char* argv[]) {
+    CommandLineArgument arg(argc, argv);
+
+    if(arg.existOption("-help")) {
+        showHelp();
+    }
+    else if(arg.existOption("-set_param")) {
+        Parameter param("setting.dat");
+        param.setParam(arg);
+        param.showParam();
+    }
+    else if(arg.existOption("-show_param")) {
+        Parameter param("setting.dat");
+        param.showParam();
+    }
+    else if(arg.existOption("-repeat")) {
+        Parameter param = arg.existOption("-from_arg") ? Parameter(arg) : Parameter("setting.dat");
+        param.showParam(); cout << endl;
+        int numLoop = arg.getValueInt("-repeat");
+        if(arg.existOption("-seed")) repeat(numLoop, param, arg.getValueInt("-seed"));
+        else                         repeat(numLoop, param);
+    }
+    else {
+        Parameter param = arg.existOption("-from_arg") ? Parameter(arg) : Parameter("setting.dat");
+        param.showParam(); cout << endl;
+        if(arg.existOption("-seed")) transition(param, arg.getValueInt("-seed"));
+        else                         transition(param);
+    }
 }
