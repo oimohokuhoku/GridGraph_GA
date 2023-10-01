@@ -147,13 +147,13 @@ int EdgeFileReader::getMaxLength(int** edges, int edgeNum, int columnNum) {
 }
 
 void EdgeFileReader::setGraph(int**edges, int edgeNum, Individual& indiv) {
-    int* degrees = new int[nodeNum()];
-    for(int i = 0; i < nodeNum(); ++i) degrees[i] = 0;
+    int* degrees = new int[numNode()];
+    for(int i = 0; i < numNode(); ++i) degrees[i] = 0;
 
-    int** resultEdges = new int*[nodeNum()];
-    for(int i = 0; i < nodeNum(); ++i) resultEdges[i] = new int[degree()];
+    int** resultEdges = new int*[numNode()];
+    for(int i = 0; i < numNode(); ++i) resultEdges[i] = new int[degree()];
 
-    for(int n = 0; n < nodeNum(); ++n) {
+    for(int n = 0; n < numNode(); ++n) {
         for(int d = 0; d < degree(); ++d) {
             resultEdges[n][d] = -1;
         }
@@ -174,7 +174,7 @@ void EdgeFileReader::setGraph(int**edges, int edgeNum, Individual& indiv) {
 
     indiv = Individual(resultEdges);
 
-    for(int i = 0; i < nodeNum(); ++i) delete[] resultEdges[i];
+    for(int i = 0; i < numNode(); ++i) delete[] resultEdges[i];
     delete[] resultEdges;
     delete[] degrees;
 }

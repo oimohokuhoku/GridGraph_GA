@@ -48,7 +48,7 @@ void UnitTest::adjAsplTest() {
 
         clock_t startTime = clock();
         for(int i = 0; i < numLoop[num]; ++i) {
-            indiv.editGene(evaluater);
+            evaluater(indiv);
         }
         clock_t endTime = clock();
 

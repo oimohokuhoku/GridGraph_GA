@@ -8,7 +8,7 @@ using std::string;
 void EdgeFileWriter::save(const Individual& indiv, const string& filepath) {
     std::ofstream stream(filepath);
 
-    for(int nA = 0; nA < nodeNum(); ++nA) {
+    for(int nA = 0; nA < numNode(); ++nA) {
         for(int d = 0; d < degree(); ++d) {
             int nB = indiv.adjacent[nA][d];
 
