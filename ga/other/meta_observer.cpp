@@ -9,6 +9,12 @@ void MetaObserver::reset() {
 	MetaObserver::_refinePopulation = 0;
 	MetaObserver::_childVariation = 0;
 	MetaObserver::_childPopulation = 0;
+	MetaObserver::_edgeLengthPopulation = 0;
+	MetaObserver::_sumNumAsplEvaluation = 0;
+	MetaObserver::_numLocalSearch = 0;
+
+	for(int i = 0; i < MetaObserver::_maxLength; ++i)
+		MetaObserver::_edgeLengthDistribution[i] = 0;
 }
 
 void MetaObserver::calcInheritRate(double numEmptyAdjacent) {
@@ -53,9 +59,34 @@ void MetaObserver::calcChildVariation(Collection<Individual>& parents, Collectio
 	MetaObserver::_childPopulation++;
 }
 
+void MetaObserver::calcLengthDistribution(Individual& indiv) {
+	for(int n1 = 0; n1 < numNode(); ++n1) {
+		int deg = indiv.degrees[n1];
+
+		for(int d = 0; d < deg; ++d) {
+			int n2 = indiv.adjacent[n1][d];
+			if(n1 <= n2) continue;
+
+			int len = getLength(n1, n2);
+			MetaObserver::_edgeLengthDistribution[len]++;
+		}
+	}
+	MetaObserver::_edgeLengthPopulation++;
+}
+
+void MetaObserver::calcNumAsplEvaluation(int numAsplEvaluation) {
+	_sumNumAsplEvaluation += numAsplEvaluation;
+	_numLocalSearch++;
+}
+
 double MetaObserver::_inharitRate = 0;
 int MetaObserver::_inharitPopulation = 0;
 int MetaObserver::_refineCount = 0;
 int MetaObserver::_refinePopulation = 0;
 int MetaObserver::_childVariation = 0;
 int MetaObserver::_childPopulation = 0;
+const int MetaObserver::_maxLength = 10;
+int MetaObserver::_edgeLengthDistribution[10];
+int MetaObserver::_edgeLengthPopulation = 0;
+int MetaObserver::_sumNumAsplEvaluation = 0;
+int MetaObserver::_numLocalSearch = 0;

@@ -1,27 +1,34 @@
 #include <iostream>
+#include <climits>
 #include "adj_aspl.hpp"
 #include "../individual.hpp"
-#include "../../other/common.hpp"
+#include "../../other/random.hpp"
 
-ADJ_ASPL::ADJ_ASPL(): _segmentNum((nodeNum() + (BIT_LENGTH - 1)) / BIT_LENGTH), _matrixSize(nodeNum() * nodeNum()) {
-	_linkMatrix = newArray_2D<uint64_t>(nodeNum(), _segmentNum);
-	_nextMatrix = newArray_2D<uint64_t>(nodeNum(), _segmentNum);
+ADJ_ASPL::ADJ_ASPL(): _segmentNum((numNode() + (BIT_LENGTH - 1)) / BIT_LENGTH), _matrixSize(numNode() * numNode()) {
+	_linkMatrix = new uint64_t*[numNode()];
+	for(int i =0 ; i < numNode(); ++i) _linkMatrix[i] = new uint64_t[_segmentNum];
+
+	_nextMatrix = new uint64_t*[numNode()];
+	for(int i =0 ; i < numNode(); ++i) _nextMatrix[i] = new uint64_t[_segmentNum];
+
 	this->_dislinkedNode = -1;
 }
 
 ADJ_ASPL::~ADJ_ASPL() {
-    deleteArray_2D(_linkMatrix, nodeNum());
-	deleteArray_2D(_nextMatrix, nodeNum());
+	for(int i = 0; i < numNode(); ++i) delete[] _linkMatrix[i];
+	for(int i = 0; i < numNode(); ++i) delete[] _nextMatrix[i];
+	delete[] _linkMatrix;
+	delete[] _nextMatrix;
 }
 
-void ADJ_ASPL::edit(Individual& indiv) {
-    long distanceSum = _matrixSize - nodeNum();
+void ADJ_ASPL::operator() (Individual& indiv) {
+    long distanceSum = _matrixSize - numNode();
 
 	setIdentityMatrix(_linkMatrix);
 	setIdentityMatrix(_nextMatrix);
 
 	int hop = 1;
-	while(hop < nodeNum()) {
+	while(hop < numNode()) {
 		step(indiv, _linkMatrix, _nextMatrix);
 
 		long noLinkNum = countZero(_nextMatrix);
@@ -36,21 +43,25 @@ void ADJ_ASPL::edit(Individual& indiv) {
 		_nextMatrix = temp;
 	}
 
-	if(hop == nodeNum()) {
-		indiv.diameter = INF; 
-		indiv.aspl = INF;
+	if(hop == numNode()) {
+		indiv.diameter = INT_MAX; 
+		indiv.aspl = INT_MAX;
 		this->_dislinkedNode = findDislinkedNode(_linkMatrix);
 		return;
 	}
 
 	indiv.diameter = hop;
-	indiv.aspl = (double)distanceSum / (pairNum() * 2);
+	indiv.aspl = (double)distanceSum / (numPair() * 2);
 	this->_dislinkedNode = -1;
+}
+
+int ADJ_ASPL::dislinkedNode() {
+	return this->_dislinkedNode;
 }
 
 
 void ADJ_ASPL::setIdentityMatrix(uint64_t *__restrict *__restrict matrix) {
-	for(int i = 0; i < nodeNum(); ++i) {
+	for(int i = 0; i < numNode(); ++i) {
 		for(int j = 0; j < _segmentNum; ++j) {
 			matrix[i][j] = 0;
 		}
@@ -58,7 +69,7 @@ void ADJ_ASPL::setIdentityMatrix(uint64_t *__restrict *__restrict matrix) {
 
 	int bitPos = BIT_LENGTH - 1;
 	int segmentIndex = 0;
-	for(int i = 0; i < nodeNum(); ++i) {
+	for(int i = 0; i < numNode(); ++i) {
 		matrix[i][segmentIndex] = (0x1ULL << bitPos);
 
 		--bitPos;
@@ -71,7 +82,7 @@ void ADJ_ASPL::setIdentityMatrix(uint64_t *__restrict *__restrict matrix) {
 }
 
 void ADJ_ASPL::step(const Individual& indiv, uint64_t *__restrict *__restrict currentMatrix, uint64_t *__restrict *__restrict nextMatrix){
-	for(int n = 0; n < nodeNum(); ++n) {
+	for(int n = 0; n < numNode(); ++n) {
 			int deg = indiv.degrees[n];
 			for(int d = 0; d < deg; ++d) {
 				int targetNode = indiv.adjacent[n][d];
@@ -84,7 +95,7 @@ void ADJ_ASPL::step(const Individual& indiv, uint64_t *__restrict *__restrict cu
 
 int ADJ_ASPL::countZero(uint64_t *__restrict *__restrict matrix) {
 	int popNum = 0;
-	for(int row = 0; row < nodeNum(); ++row) {
+	for(int row = 0; row < numNode(); ++row) {
 		for(int seg = 0; seg < _segmentNum; ++seg) {
 			popNum += __builtin_popcountl(_nextMatrix[row][seg]);
 		}

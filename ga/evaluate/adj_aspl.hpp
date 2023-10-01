@@ -2,14 +2,13 @@
 
 #include <cstdint>
 #include "ievaluater.hpp"
-#include "../i_gene_editor.hpp"
 
-class ADJ_ASPL: public IEvaluater, public IGeneEditor { 
+class ADJ_ASPL: public IEvaluater { 
 public:
     ADJ_ASPL();
     ~ADJ_ASPL();
-    void edit(Individual& indiv);
-    int dislinkedNode() override { return this->_dislinkedNode; }
+    void operator() (Individual& indiv) override;
+    int dislinkedNode() override;
 
 private:
     static const int BIT_LENGTH = 64;

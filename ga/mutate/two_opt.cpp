@@ -2,19 +2,21 @@
 #include <iostream>
 #include "two_opt.hpp"
 #include "../individual.hpp"
-#include "../../other/common.hpp"
+#include "../../other/random.hpp"
 
-void TwoOpt::edit(Individual& indiv) {
-    if(_INDIV_MUTATE_PROBABILITY < randDouble()) return;
+void TwoOpt::operator() (Individual& indiv) {
+	Random random;
+    if(_INDIV_MUTATE_PROBABILITY < random.randomDouble()) return;
 
-    for(int i = 0; i < nodeNum(); ++i) {
-        if(_GENE_MUTATE_PROBABILITY < randDouble()) continue;
+    for(int i = 0; i < numNode(); ++i) {
+        if(_GENE_MUTATE_PROBABILITY < random.randomDouble()) continue;
         twoOpt(indiv, i);
     }
 }
 
 void TwoOpt::twoOpt(Individual& indiv) {
-	int rand = randInt(0, nodeNum());
+	Random random;
+	int rand = random.randomInt(0, numNode());
 	twoOpt(indiv, rand);
 }
 
@@ -55,10 +57,10 @@ void TwoOpt::twoOpt(Individual& indiv, int nodeA1, int nodeA2, int nodeB1, int n
 }
 
 void TwoOpt::twoOpt_safe(Individual& indiv, int nodeA1, int nodeA2, int nodeB1, int nodeB2) {
-	if(!indiv.haveEdge(nodeA1, nodeA2)) { std::cerr << "2-opt Error1: " << nodeA1 << "-" << nodeA2 << " isn't exists" << endl; indiv.showNodes(); exit(0); }
-	if(!indiv.haveEdge(nodeB1, nodeB2)) { std::cerr << "2-opt Error2: " << nodeB1 << "-" << nodeB2 << " isn't exists" << endl; exit(0); }
-	if(length() < getLength(nodeA1, nodeB1)) { std::cerr << "2-opt Error3: " << nodeA1 << " and " << nodeB1 << " is so far" << endl; exit(0); }
-	if(length() < getLength(nodeA2, nodeB2)) { std::cerr << "2-opt Error4: " << nodeA2 << " and " << nodeB2 << " is so far" << endl; exit(0); }
+	if(!indiv.haveEdge(nodeA1, nodeA2)) { std::cerr << "2-opt Error1: " << nodeA1 << "-" << nodeA2 << " isn't exists" << std::endl; indiv.showNodes(); exit(0); }
+	if(!indiv.haveEdge(nodeB1, nodeB2)) { std::cerr << "2-opt Error2: " << nodeB1 << "-" << nodeB2 << " isn't exists" << std::endl; exit(0); }
+	if(length() < getLength(nodeA1, nodeB1)) { std::cerr << "2-opt Error3: " << nodeA1 << " and " << nodeB1 << " is so far" << std::endl; exit(0); }
+	if(length() < getLength(nodeA2, nodeB2)) { std::cerr << "2-opt Error4: " << nodeA2 << " and " << nodeB2 << " is so far" << std::endl; exit(0); }
 
 	twoOpt(indiv, nodeA1, nodeA2, nodeB1, nodeB2);
 }
@@ -101,6 +103,7 @@ void TwoOpt::getIndex(const Individual& indiv, int nodeA, int nodeB, int* indexA
 }
 
 int TwoOpt::getNearNode(int srcNode) {
+	Random random;
 	int srcColumn = getColumn(srcNode);
 	int srcRow = getRow(srcNode);
 	int resultNode;
@@ -108,12 +111,12 @@ int TwoOpt::getNearNode(int srcNode) {
 	int lowerColumnRange = srcColumn - length();
 	int upperColumnRange = srcColumn + length();
 	if(lowerColumnRange < 0) lowerColumnRange  = 0;
-	if(columnNum() < upperColumnRange) upperColumnRange = columnNum();
+	if(numColumn() < upperColumnRange) upperColumnRange = numColumn();
 
 	while(true) {
 		int column, row;
 
-		column = randInt(lowerColumnRange, upperColumnRange);
+		column = random.randomInt(lowerColumnRange, upperColumnRange);
 
 		int dColumn = srcColumn - column;
 		if(dColumn < 0) dColumn *= -1;
@@ -127,9 +130,9 @@ int TwoOpt::getNearNode(int srcNode) {
 			int lowerRowRange = srcRow - remainDistance;
 			int upperRowRange = srcRow + remainDistance;
 			if(lowerRowRange < 0) lowerRowRange = 0;
-			if(rowNum() < upperRowRange) upperRowRange = rowNum();
+			if(numRow() < upperRowRange) upperRowRange = numRow();
 
-			row = randInt(lowerRowRange, upperRowRange);
+			row = random.randomInt(lowerRowRange, upperRowRange);
 		}
 
 		resultNode = fromAxis(column, row);
@@ -141,8 +144,9 @@ int TwoOpt::getNearNode(int srcNode) {
 }
 
 bool TwoOpt::getReconnectableEdge(const Individual& indiv, int startNodeA, int startNodeB, int* endNodeA, int* endNodeB) {
-	int iA = randInt(0, degree());
-	int iB = randInt(0, degree());
+	Random random;
+	int iA = random.randomInt(0, degree());
+	int iB = random.randomInt(0, degree());
 
 	for(int a = 0; a < degree(); ++a) {
 		iA = (iA + 1) % degree();

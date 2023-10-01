@@ -1,21 +1,27 @@
+#include"crossover.hpp"
 #include<iostream>
 #include<cstdlib>
-#include"twx.hpp"
+#include<climits>
 #include"../individual.hpp"
-#include"../../other/common.hpp"
+#include"../../other/random.hpp"
 #include"../../other/int_queue.hpp"
 #include"../evaluate/adj_aspl.hpp"
 using namespace std;
 
 /* public */
-void TWX::cross(const Individual& parentA, const Individual& parentB, Individual& child) {
+TourWeavingCrossover::TourWeavingCrossover(int numInherit, int ratePeriSelect){
+	_numPeriSelect = numInherit * ratePeriSelect;
+	_numAllSelect = numInherit - _numPeriSelect;
+}
+
+void TourWeavingCrossover::operator() (const Individual& parentA, const Individual& parentB, Individual& child) {
 	int startNode, endNode;
-	int* tour = new int[nodeNum()];
+	int* tour = new int[numNode()];
 	_degreeCount = 0;
 
 	child.clear();
 
-	for (int i = 0; i < 0; ++i) {
+	for (int i = 0; i < _numPeriSelect; ++i) {
 		startNode = selectNodeFromPerimeter(child);
 		endNode = selectNodeFromPerimeter(child);
 
@@ -31,7 +37,7 @@ void TWX::cross(const Individual& parentA, const Individual& parentB, Individual
 		addTour(child, tour);
 	}
 
-	for (int i = 0; i < 400; ++i) {
+	for (int i = 0; i < _numAllSelect; ++i) {
 		startNode = selectNodeFromAll(child);
 		endNode = selectNodeFromAll(child);
 
@@ -52,12 +58,13 @@ void TWX::cross(const Individual& parentA, const Individual& parentB, Individual
 }
 
 /* private */
-int TWX::selectNodeFromAll(const Individual& child){
-	int n = randInt(0, nodeNum());
-	int rand = randInt(1, 2 + nodeNum() - (int)(_degreeCount / degree()));
+int TourWeavingCrossover::selectNodeFromAll(const Individual& child){
+	Random random;
+	int n = random.randomInt(0, numNode());
+	int rand = random.randomInt(1, 2 + numNode() - (int)(_degreeCount / degree()));
 
-	for (int i = 0; i < nodeNum(); ++i) {
-		n = (n + 1) % nodeNum();
+	for (int i = 0; i < numNode(); ++i) {
+		n = (n + 1) % numNode();
 		if (child.degrees[n] < degree()) {
 			rand--;
 			if(rand <= 0) return n;
@@ -67,10 +74,11 @@ int TWX::selectNodeFromAll(const Individual& child){
 	return -1;
 }
 
-int TWX::selectNodeFromPerimeter(const Individual& child) {
+int TourWeavingCrossover::selectNodeFromPerimeter(const Individual& child) {
+	Random random;
 	const int NUM_PERI = perimeters().size();
 	int n;
-	int rand = randInt(0, perimeters().size());
+	int rand = random.randomInt(0, perimeters().size());
 	int count = 0;
 	while (count < NUM_PERI) {
 		n = perimeters()[rand];
@@ -82,14 +90,15 @@ int TWX::selectNodeFromPerimeter(const Individual& child) {
 	return -1;
 }
 
-void TWX::getMinTour(const Individual& parent, const int startNode, const int endNode, int* tourOut) {
-	IntQueue queue(nodeNum());
-	bool visited[nodeNum()];
-	int edges[nodeNum()][2];
+void TourWeavingCrossover::getMinTour(const Individual& parent, const int startNode, const int endNode, int* tourOut) {
+	Random random;
+	IntQueue queue(numNode());
+	bool visited[numNode()];
+	int edges[numNode()][2];
 	int n1, n2, edgeIndex = 0;
 	bool reach = false;
 
-	for (int i = 0; i < nodeNum(); ++i) visited[i] = false;
+	for (int i = 0; i < numNode(); ++i) visited[i] = false;
 
 	/* bfs */
 	queue.enqueue(startNode);
@@ -105,7 +114,7 @@ void TWX::getMinTour(const Individual& parent, const int startNode, const int en
 			if (visited[n2]) continue;
 
 			if(getLength(n1, n2) > 1) {
-				double rand = randDouble();
+				double rand = random.randomDouble();
 				if(rand < 0.01) continue;
 			}
 
@@ -139,12 +148,13 @@ void TWX::getMinTour(const Individual& parent, const int startNode, const int en
 	tourOut[tourIndex] = -1;
 }
 
-void TWX::getTour(const Individual& parent, const int startNode, const int endNode, int* tourOut) {
+void TourWeavingCrossover::getTour(const Individual& parent, const int startNode, const int endNode, int* tourOut) {
+	Random random;
 	int index = 0;
 	int node = startNode;
-	bool* finded = new bool[nodeNum()];
+	bool* finded = new bool[numNode()];
 
-	for(int i = 0; i < nodeNum(); ++i) finded[i] = false;
+	for(int i = 0; i < numNode(); ++i) finded[i] = false;
 
 	tourOut[index] = startNode;
 	index++;
@@ -152,7 +162,7 @@ void TWX::getTour(const Individual& parent, const int startNode, const int endNo
 	while(true) {
 		int minDeg = -1;
 		int minDist = INT_MAX;
-		int d = randInt(0, degree());
+		int d = random.randomInt(0, degree());
 		for (int di = 0; di < degree(); ++di) {
 			d = (d + 1) % degree();
 			int n = parent.adjacent[node][d];
@@ -186,7 +196,7 @@ void TWX::getTour(const Individual& parent, const int startNode, const int endNo
 	} 
 }
 
-void TWX::addTour(Individual& indiv, int tour[]) {
+void TourWeavingCrossover::addTour(Individual& indiv, int tour[]) {
 	for(int i = 0; tour[i + 1] != -1; ++i) {
 		int n1 = tour[i];
 		int n2 = tour[i + 1];

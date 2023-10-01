@@ -1,15 +1,15 @@
 #pragma once
 
 #include <memory>
-#include "../i_gene_editor.hpp"
 #include "mutater_base.hpp"
+#include "../grid_graph_base.hpp"
 using std::unique_ptr;
 
-class Rotate: public IGeneEditor, private Mutater_Base {
+class Rotate: private Mutater_Base, GridGraph {
 public:
     Rotate() = default;
     ~Rotate() = default;
-    void edit(Individual& indiv) override;
+    void operator() (Individual& indiv) override;
 
 private:
     static unique_ptr<int[]> _rotatedNode90;

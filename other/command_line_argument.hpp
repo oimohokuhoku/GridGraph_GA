@@ -8,13 +8,16 @@ public:
     struct ArgSet {
         string option;
         string value;
+        bool hasValue;
     };
 
     CommandLineArgument(int argc, char* argv[]);
-    ~CommandLineArgument() = default;
-    void showArguments();
-    bool existOption(string option);
-    string getValue(string option);
+    void showArguments() const;
+    bool existOption(string option) const;
+    int getValueInt(string optionName) const;
+    double getValueDouble(string optionName) const;
+    string getValueString(string optionName) const;
+    bool getValueBool(string optionName) const;
 
 private:
     vector<ArgSet> _argSet;

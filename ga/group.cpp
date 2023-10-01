@@ -1,31 +1,35 @@
+#include "ga/group.hpp"
+
 #include <iostream>
 #include <cstdlib>
 #include <memory>
-#include "group.hpp"
-#include "individual.hpp"
-#include "evaluate/adj_aspl.hpp"
-#include "select/i_selector.hpp"
-#include "select/mgg.hpp"
-#include "crossover/twx.hpp"
-#include "crossover/dex.hpp"
-#include "crossover/uniform_cross.hpp"
-#include "mutate/rotate.hpp"
-#include "other/randomizer.hpp"
-#include "other/local_search.hpp"
-#include "other/meta_observer.hpp"
-#include "../io/edges_file_writer.hpp"
-#include "../other/common.hpp"
-#include "../other/collection.hpp"
+#include "ga/individual.hpp"
+#include "ga/evaluate/adj_aspl.hpp"
+#include "ga/select/i_selector.hpp"
+#include "ga/select/mgg.hpp"
+#include "ga/crossover/crossover.hpp"
+#include "ga/mutate/two_opt.hpp"
+#include "ga/other/randomizer.hpp"
+#include "ga/other/local_search.hpp"
+#include "ga/other/meta_observer.hpp"
+#include "io/edges_file_writer.hpp"
+#include "other/collection.hpp"
 using std::unique_ptr;
 
-/* public */
-Group::Group() {
-	this->_indivs = Collection<Individual>(_GROUP_SIZE);
+#include <string>
 
+/* public */
+Group::Group(int groupSize, int numCreatedChild): _GROUP_SIZE(groupSize), _NUM_CREATED_CHILD(numCreatedChild) {
+	this->_indivs = Collection<Individual>(_GROUP_SIZE);
 	_bestIndex = -1;
 	_worstIndex = -1;
 	_averageASPL = -1;
 	_averageDiameter = -1;
+	_generation = 0;
+}
+
+Group::~Group() {
+	delete crossover;
 }
 
 void Group::createRandomIndivs() {
@@ -37,7 +41,7 @@ void Group::createRandomIndivs() {
 		randomizer.randomize(_indivs[i]);
 
 		while (true) {
-			_indivs[i].editGene(evaluater);
+			evaluater(_indivs[i]);
 			
 			//modify graph until graph becomes linked
 			int dislink = evaluater.dislinkedNode();
@@ -56,9 +60,7 @@ void Group::createRandomIndivs() {
 
 void Group::changeGeneration() {
 	MGG selector;
-	TWX crossover1;
 	TwoOpt mutater;
-	Rotate rotate;
 	ADJ_ASPL evaluate;
 	LocalSearch ls;
 	MetaObserver::reset();
@@ -70,21 +72,18 @@ void Group::changeGeneration() {
 
 	while (childNum < _GROUP_SIZE) {
 		Collection<Individual> parents = copySelector->select();
-		Collection<Individual> childs(_CREATED_CHILD_NUM);
+		Collection<Individual> childs(_NUM_CREATED_CHILD);
 
-		for(int i = 0; i < _CREATED_CHILD_NUM; ++i) crossover1.cross(parents[0], parents[1], childs[i]);
+		for(int i = 0; i < _NUM_CREATED_CHILD; ++i) (*crossover)(parents[0], parents[1], childs[i]);
 
-		for (int i = 0; i < _CREATED_CHILD_NUM; ++i) mutater.edit(childs[i]);
+		for (int i = 0; i < _NUM_CREATED_CHILD; ++i) mutater(childs[i]);
 		
-		for (int i = 0; i < _CREATED_CHILD_NUM; ++i) evaluate.edit(childs[i]);
+		for (int i = 0; i < _NUM_CREATED_CHILD; ++i) evaluate(childs[i]);
 
 		if(doLocalSearch)
-			for (int i = 0; i < _CREATED_CHILD_NUM; ++i) ls.doLocalSearch(childs[i]);
+			for (int i = 0; i < _NUM_CREATED_CHILD; ++i) ls.doLocalSearch(childs[i]);
 
 		Collection<Individual> survivors = surviveSelector->select(parents, childs);
-
-		//survivors[0].editGene(rotate);
-		//survivors[1].editGene(rotate);
 
 		this->addIndiv(survivors, &childNum);
 
@@ -93,25 +92,14 @@ void Group::changeGeneration() {
 	}
 
 	this->tallyFitness();
-}
-
-void Group::createBestEdgesFile(string filePath) const {
-	EdgeFileWriter::save(_indivs[_bestIndex], filePath);
+	_generation++;
 }
 
 Individual Group::getBestIndiv() {
 	return _indivs[_bestIndex];
 }
 
-void Group::setParameter(int groupSize, int createdChildNum) {
-	Group::_GROUP_SIZE = groupSize;
-	Group::_CREATED_CHILD_NUM = createdChildNum;
-}
-
 /* private */
-int Group::_GROUP_SIZE;
-int Group::_CREATED_CHILD_NUM;
-
 void Group::tallyFitness() {
 	_bestIndex = 0;
 	_worstIndex = 0;

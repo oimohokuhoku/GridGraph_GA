@@ -1,13 +1,13 @@
 #pragma once
 
 #include "mutater_base.hpp"
-#include "../i_gene_editor.hpp"
+#include "../grid_graph_base.hpp"
 
-class TwoOpt: public IGeneEditor, private Mutater_Base {
+class TwoOpt: private Mutater_Base, public GridGraph {
 public:
     TwoOpt() = default;
     ~TwoOpt() = default;
-    void edit(Individual& indiv) override;
+    void operator() (Individual& indiv) override;
     void twoOpt(Individual& indiv);
     void twoOpt(Individual& indiv, int targetNode);
     void twoOpt(Individual& indiv, int nodeA1, int nodeA2, int nodeB1, int nodeB2);

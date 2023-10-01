@@ -1,8 +1,9 @@
-#include "resx.hpp"
+#include "crossover.hpp"
 #include "../individual.hpp"
 #include "../grid_graph_base.hpp"
+#include "../../other/random.hpp"
 
-void RESX::cross(const Individual& parentA, const Individual& parentB, Individual& child) {
+void SimpleEdgeSelectCrossover::operator() (const Individual& parentA, const Individual& parentB, Individual& child) {
     child.clear();
 
     int loop = 0;
@@ -28,9 +29,10 @@ void RESX::cross(const Individual& parentA, const Individual& parentB, Individua
     modifyGraph(child);
 }
 
-void RESX::GetRandomEdge(const Individual& parent, int* nodeA, int* nodeB) {
-    int nA = randInt(0, nodeNum());
-    int d = randInt(0, parent.degrees[nA]);
+void SimpleEdgeSelectCrossover::GetRandomEdge(const Individual& parent, int* nodeA, int* nodeB) {
+    Random random;
+    int nA = random.randomInt(0, numNode());
+    int d = random.randomInt(0, parent.degrees[nA]);
     *nodeA = nA;
     *nodeB = parent.adjacent[nA][d];
 }

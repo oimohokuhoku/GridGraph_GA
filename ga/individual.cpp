@@ -1,52 +1,40 @@
-#include<iostream>
-#include <memory>
-#include<cstdlib>
-#include<climits>
 #include "individual.hpp"
-#include "i_gene_editor.hpp"
-#include "../other/int_queue.hpp"
-#include "../other/common.hpp"
-#include "mutate/two_opt.hpp"
-#include "evaluate/ievaluater.hpp"
-using std::unique_ptr;
+#include<iostream>
+#include "../other/random.hpp"
+using std::cout, std::endl;
 
 Individual::Individual() {
-	adjacent = newArray_2D<int>(nodeNum(), degree());
-	degrees = new int[nodeNum()];
+	adjacent = new int*[numNode()];
+	for(int i = 0; i < numNode(); ++i) adjacent[i] = new int[degree()];
+	degrees = new int[numNode()];
 
 	diameter = -1;
 	aspl = -1;
 }
 
-Individual::Individual(const Individual& obj){
-	this->diameter = obj.diameter;
-	this->aspl = obj.aspl;
-
-	this->adjacent = newArray_2D<int>(nodeNum(), degree());
-	this->degrees = new int[nodeNum()];
-
-	for (int n = 0; n < nodeNum(); ++n) {
+Individual::Individual(const Individual& obj) : Individual(){
+	for (int n = 0; n < numNode(); ++n) {
 		for (int d = 0; d < degree(); ++d) {
 			this->adjacent[n][d] = obj.adjacent[n][d];
 		}
 	}
 
-	for (int n = 0; n < nodeNum(); ++n) {
+	for (int n = 0; n < numNode(); ++n) {
 		this->degrees[n] = obj.degrees[n];
 	}
+
+	this->diameter = obj.diameter;
+	this->aspl = obj.aspl;
 }
 
-Individual::Individual(int const *const *const edges) {
-	adjacent = newArray_2D<int>(nodeNum(), degree());
-	degrees = new int[nodeNum()];
-
-	for (int n = 0; n < nodeNum(); ++n) {
+Individual::Individual(int const *const *const edges) : Individual() {
+	for (int n = 0; n < numNode(); ++n) {
 		for(int d = 0; d < degree(); ++d) {
 			this->adjacent[n][d] = edges[n][d];
 		}
 	}
 
-	for (int n = 0; n < nodeNum(); ++n) {
+	for (int n = 0; n < numNode(); ++n) {
 		this->degrees[n] = 0;
 		for(int d = 0; d < degree(); ++d) {
 			if(this->adjacent[n][d] == -1) break;
@@ -57,13 +45,14 @@ Individual::Individual(int const *const *const edges) {
 
 Individual::~Individual() {
 	if (adjacent != nullptr) {
-		deleteArray_2D(this->adjacent, nodeNum());
-		this->adjacent = nullptr;
+		for(int i = 0; i < numNode(); ++i) delete[] adjacent[i];
+		delete[] adjacent;
+		adjacent = nullptr;
 	}
 
 	if(degrees != nullptr) {
-		delete[] this->degrees;
-		this->degrees = nullptr;
+		delete[] degrees;
+		degrees = nullptr;
 	}
 }
 
@@ -71,13 +60,13 @@ Individual& Individual::operator =(const Individual& operand) {
 	this->diameter = operand.diameter;
 	this->aspl = operand.aspl;
 
-	for (int n = 0; n < nodeNum(); ++n) {
+	for (int n = 0; n < numNode(); ++n) {
 		for (int d = 0; d < degree(); ++d) {
 			this->adjacent[n][d] = operand.adjacent[n][d];
 		}
 	}
 
-	for (int n = 0; n < nodeNum(); ++n) {
+	for (int n = 0; n < numNode(); ++n) {
 		this->degrees[n] = operand.degrees[n];
 	}
 
@@ -119,13 +108,13 @@ bool Individual::operator>=(const Individual& operand)const {
 }
 
 void Individual::clear() {
-	for (int i = 0; i < nodeNum(); ++i) {
+	for (int i = 0; i < numNode(); ++i) {
 		for (int d = 0; d < degree(); ++d) {
 			this->adjacent[i][d] = -1;
 		}
 	}
 
-	for(int i = 0; i < nodeNum(); ++i) {
+	for(int i = 0; i < numNode(); ++i) {
 		this->degrees[i] = 0;
 	}
 }
@@ -150,7 +139,7 @@ bool Individual::haveEdge(int nodeA, int nodeB) const {
 }
 
 bool Individual::sameGraph(const Individual& indiv) const {
-	for(int n = 0; n < nodeNum(); ++n) {
+	for(int n = 0; n < numNode(); ++n) {
 		int degA = this->degrees[n];
 		int degB = indiv.degrees[n];
 		for(int dA = 0; dA < degA; ++dA) {
@@ -169,7 +158,7 @@ bool Individual::sameGraph(const Individual& indiv) const {
 }
 
 void Individual::showNodes() const {
-	for (int n = 0; n < nodeNum(); ++n) {
+	for (int n = 0; n < numNode(); ++n) {
 		cout << n << ": ";
 		for (int d = 0; d < degree(); ++d) {
 			cout << this->adjacent[n][d] << " ";
@@ -178,8 +167,3 @@ void Individual::showNodes() const {
 	}
 	cout << endl;
 }
-
-void Individual::editGene(IGeneEditor& editor) {
-	editor.edit(*this);
-}
-

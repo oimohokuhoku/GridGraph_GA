@@ -7,12 +7,12 @@ public:
 	static void setParameter(int columnNum, int rowNum, int degree, int length);
     
 protected:
-    static inline int columnNum() { return GridGraph::_COLUMN_NUM; }
-    static inline int rowNum() { return GridGraph::_ROW_NUM; }
-    static inline int nodeNum() { return GridGraph::_NODE_NUM; }
+    static inline int numColumn() { return GridGraph::_COLUMN_NUM; }
+    static inline int numRow() { return GridGraph::_ROW_NUM; }
+    static inline int numNode() { return GridGraph::_NODE_NUM; }
     static inline int degree() { return GridGraph::_DEGREE; }
     static inline int length() { return GridGraph::_LENGTH; }
-    static inline int pairNum() { return GridGraph::_PAIR_NUM; }
+    static inline int numPair() { return GridGraph::_PAIR_NUM; }
     static Collection<int>& perimeters() { return GridGraph::_PERIMETER; }
 
 	static int fromAxis(int column, int row);

@@ -1,20 +1,21 @@
-#include "i_crosser.hpp"
+#include "crossover.hpp"
 #include "../individual.hpp"
 #include "../other/meta_observer.hpp"
 #include"../../other/int_queue.hpp"
-#include"../../other/common.hpp"
+#include"../../other/random.hpp"
 #include<iostream>
 
 void ICrosser::modifyGraph(Individual& indiv) {
-	IntQueue nodeQ(nodeNum() * degree());
+	IntQueue nodeQ(numNode() * degree());
+	Random random;
 	
-	for (int n = 0; n < nodeNum(); ++n) {
+	for (int n = 0; n < numNode(); ++n) {
 		for (int d = 0; d < degree(); ++d) {
 			if (indiv.adjacent[n][d] == -1) nodeQ.enqueue(n);
 		}
 	}
 
-	MetaObserver::calcInheritRate((double)nodeQ.count() / (nodeNum() * degree()));
+	MetaObserver::calcInheritRate((double)nodeQ.count() / (numNode() * degree()));
 
 	int n1, n2, c;
 	while (true) {
@@ -29,7 +30,7 @@ void ICrosser::modifyGraph(Individual& indiv) {
 			n2 = nodeQ.dequeue();
 
 			/* skip for random */
-			int r = randInt(0, 2);
+			int r = random.randomInt(0, 2);
 			if (r == 1) {
 				nodeQ.enqueue(n2);
 				continue;

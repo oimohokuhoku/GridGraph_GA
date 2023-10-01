@@ -5,6 +5,7 @@
 #include "i_selector.hpp"
 #include"../individual.hpp"
 #include"../../other/collection.hpp"
+#include"../../other/random.hpp"
 using std::unique_ptr;
 
 unique_ptr<ICopySelector> MGG::generateCopySelector(Collection<Individual>& parents) {
@@ -45,17 +46,17 @@ Collection<Individual> MGG::CopySelector::select() {
 
 void MGG::CopySelector::setRandomSequence(int* seq) {
     const int NUM_PARENT = _parents.size();
+    Random random;
 
     for(int i = 0; i < NUM_PARENT; ++i) seq[i] = i;
 
     for(int i = 0; i < NUM_PARENT; ++i) {
-        int j = randInt(0, NUM_PARENT);
+        int j = random.randomInt(0, NUM_PARENT);
         int temp = seq[i];
         seq[i] = seq[j];
         seq[j] = temp;
     }
 }
-
 
 
 Collection<Individual> MGG::SurviveSelector::select(Collection<Individual>& parents, Collection<Individual>& childs) {
@@ -120,7 +121,8 @@ Individual& MGG::SurviveSelector::selectRoulette() {
         sumASPL += (1.0 / _childs[i].aspl);
     }
 
-    double roulette = randDouble() * sumASPL;
+    Random random;
+    double roulette = random.randomDouble() * sumASPL;
     for(int i = 0; i < PARENT_SIZE; ++i) {
         if(_selectedParent[i]) continue;
         roulette -= (1.0 / _parents[i].aspl);

@@ -1,14 +1,6 @@
 #pragma once
 
-#include <memory>
-#include "../other/common.hpp"
 #include "grid_graph_base.hpp"
-#include "mutate/two_opt.hpp"
-#include "crossover/i_crosser.hpp"
-
-using std::unique_ptr;
-class IEvaluater;
-class IGeneEditor;
 
 class Individual: public GridGraph{
 public:
@@ -51,6 +43,4 @@ public:
 	/// @return 
 	bool sameGraph(const Individual& indiv) const;
 	void showNodes() const;
-
-	void editGene(IGeneEditor& editor);
 };
