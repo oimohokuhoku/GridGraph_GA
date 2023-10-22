@@ -3,6 +3,7 @@
 #include "adj_aspl.hpp"
 #include "../individual.hpp"
 #include "../../other/random.hpp"
+#include "ga/other/meta_observer.hpp"
 
 ADJ_ASPL::ADJ_ASPL(): _segmentNum((numNode() + (BIT_LENGTH - 1)) / BIT_LENGTH), _matrixSize(numNode() * numNode()) {
 	_linkMatrix = new uint64_t*[numNode()];
@@ -22,6 +23,7 @@ ADJ_ASPL::~ADJ_ASPL() {
 }
 
 void ADJ_ASPL::operator() (Individual& indiv) {
+	MetaObserver::countNumAsplEvaluation();
     long distanceSum = _matrixSize - numNode();
 
 	setIdentityMatrix(_linkMatrix);

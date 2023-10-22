@@ -5,6 +5,7 @@
 #include "meta_observer.hpp"
 #include "../../other/random.hpp"
 #include <iostream>
+#include <fstream>
 
 LocalSearch::LocalSearch() {
     _nearNodes = new int[length() * length() * 4];
@@ -14,16 +15,16 @@ LocalSearch::~LocalSearch() {
     delete[] this->_nearNodes;
 }
 
-void LocalSearch::doLocalSearch(Individual& indiv, int maxAsplCalc) {
+void LocalSearch::operator()(Individual& indiv, int maxAsplCalc) {
     TwoOpt twoOpter;
     ADJ_ASPL evaluater;
     Random random;
     int start = random.randomInt(0, numNode());
     int nodeA1 = start;
     Individual beforeIndiv = indiv;
-
+    
     int numAsplCalc = 0;
-
+    
     do {
         collectNearNodes(nodeA1, _nearNodes);
 
@@ -42,14 +43,18 @@ void LocalSearch::doLocalSearch(Individual& indiv, int maxAsplCalc) {
                     evaluater(indiv);
                     numAsplCalc++;
 
-                    if(beforeIndiv <= indiv) {
+                    if(indiv.worseThan(beforeIndiv) || indiv.equalFitness(beforeIndiv)) {
                         indiv = beforeIndiv;
                         if(maxAsplCalc < numAsplCalc) return;
                         continue;
                     }
                     
+
                     beforeIndiv = indiv;
                     start = nodeA1;
+
+                    if(maxAsplCalc < numAsplCalc) return;
+
                     break;
                 }
             }
@@ -57,8 +62,6 @@ void LocalSearch::doLocalSearch(Individual& indiv, int maxAsplCalc) {
 
         nodeA1 = (nodeA1 + 1) % numNode();
     } while(start != nodeA1);
-
-    MetaObserver::calcNumAsplEvaluation(numAsplCalc);
 }
 
 void LocalSearch::collectNearNodes(int srcNode, int* output) {

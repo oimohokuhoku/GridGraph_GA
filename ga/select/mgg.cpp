@@ -1,139 +1,21 @@
-#include <iostream>
-#include<cstdlib>
-#include<memory>
 #include"mgg.hpp"
-#include "i_selector.hpp"
-#include"../individual.hpp"
-#include"../../other/collection.hpp"
-#include"../../other/random.hpp"
-using std::unique_ptr;
+#include"copy_selector.hpp"
+#include"survive_selector.hpp"
+#include"ga/individual.hpp"
+#include"other/collection.hpp"
+#include"other/random.hpp"
+#include "other/array_util.hpp"
 
-unique_ptr<ICopySelector> MGG::generateCopySelector(Collection<Individual>& parents) {
-    return unique_ptr<ICopySelector>(new MGG::CopySelector(parents));
+void MGG::copySelect(int* index1, int* index2, int numParent) {
+    RandomSelectWithoutReplace::select(index1, index2, numParent);
 }
 
-unique_ptr<ISurviveSelector> MGG::generateSurviveSelector() {
-    return unique_ptr<ISurviveSelector>(new MGG::SurviveSelector());
-}
+void MGG::surviveSelect(const Collection<Individual>& parents, const Collection<Individual>& childs, Individual& survivorA, Individual& survivorB) {
+    Collection<Individual> indivs = parents.concat(childs);
+    bool* selected = ArrayUtil::newArray<bool>(indivs.size(), false);
 
-
-
-MGG::CopySelector::CopySelector(Collection<Individual>& parents) {
-    this->_parents = parents;
-    this->_selectSeq = new int[parents.size()];
-    this->_selectIndex = 0;
-    setRandomSequence(_selectSeq);
-}
-
-MGG::CopySelector::~CopySelector() {
-    delete[] this->_selectSeq;
-}
-
-Collection<Individual> MGG::CopySelector::select() {
-	Collection<Individual> result(2);
-    int index;
-
-    index = _selectSeq[_selectIndex];
-	result[0] = _parents[index];
-    _selectIndex++;
-
-	index = _selectSeq[_selectIndex];
-	result[1] = _parents[index];
-    _selectIndex++;
-
-	return result;
-}
-
-void MGG::CopySelector::setRandomSequence(int* seq) {
-    const int NUM_PARENT = _parents.size();
-    Random random;
-
-    for(int i = 0; i < NUM_PARENT; ++i) seq[i] = i;
-
-    for(int i = 0; i < NUM_PARENT; ++i) {
-        int j = random.randomInt(0, NUM_PARENT);
-        int temp = seq[i];
-        seq[i] = seq[j];
-        seq[j] = temp;
-    }
-}
-
-
-Collection<Individual> MGG::SurviveSelector::select(Collection<Individual>& parents, Collection<Individual>& childs) {
-    this->_parents = parents;
-    this->_childs = childs;
-    this->_selectedParent.reset(new bool[parents.size()]);
-    this->_selectedChild.reset(new bool[childs.size()]);
-
-    for(int i = 0; i < parents.size(); ++i) _selectedParent[i] = false;
-    for(int i = 0; i < childs.size(); ++i) _selectedChild[i] = false;
-
-    Collection<Individual> result(2);
-	result[0] = selectElite();
-	result[1] = selectRoulette();
-
-	return result;
-}
-
-Individual MGG::SurviveSelector::selectElite() {
-    const int PARENT_SIZE = _parents.size();
-    const int CHILD_SIZE = _childs.size();
-
-    Individual bestParent = _parents[0];
-    int bestParentIndex = 0;
-    for(int i = 1; i < PARENT_SIZE; ++i) {
-        if(_parents[i] < bestParent) {
-            bestParent = _parents[i];
-            bestParentIndex = i;
-        }
-    }
-
-    Individual bestChild = _childs[0];
-    int bestChildIndex = 0;
-    for(int i = 1; i < CHILD_SIZE; ++i) {
-        if(_childs[i] < bestChild) {
-            bestChild = _childs[i];
-            bestChildIndex = i;
-        }
-    }
-
-    if(bestParent < bestChild) {
-        _selectedParent[bestParentIndex] = true;
-        return bestParent;
-    }
-    else {
-        _selectedChild[bestChildIndex] = true;
-        return bestChild;
-    }
-}
-
-Individual& MGG::SurviveSelector::selectRoulette() {
-    const int PARENT_SIZE = _parents.size();
-    const int CHILD_SIZE = _childs.size();
-
-    double sumASPL = 0;
-    for(int i = 0; i < PARENT_SIZE; ++i) {
-        if(_selectedParent[i]) continue;
-        sumASPL += (1.0 / _parents[i].aspl);
-    }
-    for(int i = 0; i < CHILD_SIZE; ++i) {
-        if(_selectedChild[i]) continue;
-        sumASPL += (1.0 / _childs[i].aspl);
-    }
-
-    Random random;
-    double roulette = random.randomDouble() * sumASPL;
-    for(int i = 0; i < PARENT_SIZE; ++i) {
-        if(_selectedParent[i]) continue;
-        roulette -= (1.0 / _parents[i].aspl);
-        if(roulette <= 0) return _parents[i];
-    }
-    for(int i = 0; i < CHILD_SIZE; ++i) {
-        if(_selectedChild[i]) continue;
-        roulette -= (1.0 / _childs[i].aspl);
-        if(roulette <= 0) return _childs[i];
-    }
-
-    std::cerr << "Exception in SurvivorSelector::selectRoulette()" << std::endl;
-    exit(-1);
+    ElitistSelect selectA;
+    RouletteSelect selectB;
+    survivorA = selectA.select(indivs, selected);
+    survivorB = selectB.select(indivs, selected);
 }

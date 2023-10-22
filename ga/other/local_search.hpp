@@ -8,9 +8,9 @@ class LocalSearch: public GridGraph {
 public:
     LocalSearch();
     ~LocalSearch();
-    void doLocalSearch(Individual& indiv, int maxAsplCalc = INT_MAX);
-    void collectNearNodes(int srcNode, int* out);
+    void operator()(Individual& indiv, int maxAsplCalc = INT_MAX);
 
 private:
     int* _nearNodes;
+    void collectNearNodes(int srcNode, int* out);
 };

@@ -18,7 +18,7 @@ void IntQueue::enqueue(int value) {
 }
 
 int IntQueue::dequeue() {
-	if(isEmpty()) {
+	if(empty()) {
 		std::cerr << "Exception IntQueue::dequeue()" << std::endl;
 		exit(0);
 	}
@@ -33,7 +33,7 @@ int IntQueue::count() {
 	else return _maxSize - (_head - _tail);
 }
 
-bool IntQueue::isEmpty() {
+bool IntQueue::empty() {
 	return (_head == _tail);
 }
 

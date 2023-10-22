@@ -1,9 +1,25 @@
 #include "randomizer.hpp"
 #include "../individual.hpp"
-#include "../mutate/two_opt.hpp"
+#include "ga/mutate/two_opt.hpp"
+#include "ga/evaluate/adj_aspl.hpp"
 
-void Randomizer::randomize(Individual& indiv) {
-    int v1, v2;
+
+void Randomizer::operator()(Individual& indiv) {
+    setRandomEdge(indiv);
+
+	ADJ_ASPL evaluater;
+	TwoOpt twoOpt;
+	while (true) {
+		evaluater(indiv);
+		
+		int dislink = evaluater.dislinkedNode();
+		if (dislink == -1) break;
+		twoOpt.twoOpt(indiv, dislink);
+	}
+}
+
+void Randomizer::setRandomEdge(Individual& indiv) {
+	int v1, v2;
 
 	//connect adjast edges
 	for (int column = 0; column + 1 < numColumn(); column += 2) {
@@ -38,7 +54,7 @@ void Randomizer::randomize(Individual& indiv) {
 
 	for (int i = 0; i < numNode(); ++i) indiv.degrees[i] = degree();
 
-	/* 2-opt randomize */
+	/* randomize edges */
 	TwoOpt mutater;
 	for (int i = 0; i < degree() * 4; ++i) {
 		for (int j = 0; j < numNode(); j++) {

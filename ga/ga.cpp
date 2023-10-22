@@ -13,13 +13,14 @@
 using namespace std;
 
 GeneticAlgorithm::GeneticAlgorithm(Parameter param) : _MAX_GENERATION(param.maxGeneration()) {
+    MetaObserver::reset();
     GridGraph::setParameter(param.numColumn(), param.numRow(), param.degree(), param.maxLength());
     Mutater_Base::SetParameter(param.mutateIndiv(), param.mutateGene());
 
     _group = new Group(param.groupSize(), param.numChild());
     _group->crossover =  generateCrossover(param);
-    _group->doLocalSearch = param.doLocalSearch();
-    _group->createRandomIndivs();
+    _group->numInitLocalSearch = param.numInitLocalSearch();
+    _group->createRandomIndivs(param);
 }
 
 GeneticAlgorithm::~GeneticAlgorithm() {
@@ -30,7 +31,9 @@ GeneticAlgorithm::~GeneticAlgorithm() {
 }
 
 void GeneticAlgorithm::step() {
-    _group->changeGeneration();
+    MetaObserver::reset();
+
+    _group->changeGeneration_ER();
     _generation++;
 
     if (MetaObserver::childVariation() < 0.1) {
@@ -64,7 +67,9 @@ void GeneticAlgorithm::showParameter() const {
     cout << setw(14) << setprecision(3) << MetaObserver::refineRate();
 
     cout << defaultfloat;
-    cout << MetaObserver::childVariation() << " ";
+    cout << setw(18) << MetaObserver::childVariation();
+
+    cout << MetaObserver::numAsplEvaluation();
  
     cout << endl;
 }
@@ -77,7 +82,8 @@ void GeneticAlgorithm::recordParameter(ofstream& ofs) const {
     ofs << _group->worstASPL() << ",";
     ofs << MetaObserver::inharitRate() << ",";
     ofs << MetaObserver::refineRate() << ",";
-    ofs << MetaObserver::childVariation() << endl;
+    ofs << MetaObserver::childVariation() << ",";
+    ofs << MetaObserver::numAsplEvaluation() << endl;
 }
 
 double GeneticAlgorithm::bestAspl() const {
@@ -96,7 +102,8 @@ void GeneticAlgorithm::showHeader() {
 
     cout << setw(14) << "Inherit rate";
     cout << setw(14) << "Refine rate";
-    cout << "child variation";
+    cout << setw(18) << "child variation";
+    cout << "calculate aspl";
 
     cout << endl;
 }
@@ -107,10 +114,11 @@ void GeneticAlgorithm::saveEdgesFile(string filepath) const {
 
 /* private */
 ICrosser* GeneticAlgorithm::generateCrossover(Parameter param) {
+    //return new DMSX(3);
     if(param.crossover() == "twx") 
         return new TourWeavingCrossover(param.twxNumLoop(), param.twxPerimeterSelectRate());
     if(param.crossover() == "gx")
-        return new GraftingCrossover();
+        return new GraftingCrossover(param.gxMaxNumLS());
 
     cerr << "Crossover \"" << param.crossover() << "\" is not implemented" << endl;
     exit(0);

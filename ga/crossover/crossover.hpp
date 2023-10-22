@@ -12,12 +12,31 @@ protected:
     void virtual modifyGraph(Individual& indiv);
 };
 
+class DMSX : public ICrosser {
+public:
+    DMSX(int unitWidth);
+    ~DMSX();
+    void operator() (const Individual& parentA, const Individual& parentB, Individual& child) override;
+private:
+    const int _UNIT_WIDTH;
+    const int _NUM_UNIT_COLUMN;
+    const int _NUM_UNIT_ROW;
+    bool** exchandegEdgeInStartParent;
+    bool** exchandegEdgeInEndParent;
+    void generateNeighbor(const Individual& startParent, const Individual& endParent, int unitIndex, Individual& baseIndiv);
+    int findShortestABCycle(const Individual& startParent, const Individual& endParent, int startEdgeNode1, int startEdgeNode2, int* abCycle);
+    int toPath(int* preNodes, int startNode, int endNode, int* path);
+    void embedABCycle(int* abCycle, int cycleLength, Individual& baseIndiv);
+    void recordEmbedded(int* abCycle, int cycleLength, const Individual& startParent, const Individual& endParent);
+};
+
 class GraftingCrossover : public ICrosser {
 public:
-    GraftingCrossover() = default;
+    GraftingCrossover(int maxNumLS);
     ~GraftingCrossover() = default;
     void operator() (const Individual& parentA, const Individual& parentB, Individual& child) override;
 private:
+    const int _MAX_NUM_LS;
     void decideNodeBelonging(int* array);
     int* decideDivideLine(int width, int numDevideLine);
     void obtainEdgeWithinRange(const Individual& parentA, const Individual& parentB, int* nodeBelonging, Individual& child);

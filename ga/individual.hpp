@@ -17,30 +17,16 @@ public:
 	~Individual();
 	
 	Individual& operator =(const Individual& operand);
-	bool operator ==(const Individual& operand)const;
-	/// @brief smaller graph is better
-	bool operator <(const Individual& operand)const;
-	/// @brief smaller graph is better
-	bool operator >(const Individual& operand)const;
-	/// @brief smaller graph is better
-	bool operator <=(const Individual& operand)const;
-	/// @brief smaller graph is better
-	bool operator >=(const Individual& operand)const;
+	bool equalFitness(const Individual& operand)const;
+	bool worseThan(const Individual& operand)const;
+	bool betterThan(const Individual& operand)const;
 
-	/// @brief delete all edges
 	void clear();
-	/// @brief add edge. illegal edge(duplicated, over degree) is ignored
-	/// @param nodeA end of edge
-	/// @param nodeB end of edge 
 	void addEdge(int nodeA, int nodeB);
-	/// @brief whether this has edge
-	/// @param nodeA end of edge
-	/// @param nodeB end of edge
-	/// @return If this already has edge, return true
+	void removeEdge(int nodeA, int nodeB);
 	bool haveEdge(int nodeA, int nodeB) const;
-	/// @brief check all edge matching. graph which same as rotated, regard as not same.
-	/// @param indiv 
-	/// @return 
 	bool sameGraph(const Individual& indiv) const;
+	int getDegreeIndex(int nodeA, int nodeB) const;
+
 	void showNodes() const;
 };

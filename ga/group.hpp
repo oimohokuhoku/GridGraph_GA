@@ -5,19 +5,19 @@
 #include "../other/collection.hpp"
 using std::string;
 class ICrosser;
+class Parameter;
 
 class Group {
 public:
-	Group(int groupSize, int numCreatedChild);
-	~Group();
-
-	bool doLocalSearch = false;
+	int numInitLocalSearch = 0;
 	ICrosser* crossover;
 
-	void createRandomIndivs();
-	void changeGeneration();
+	Group(int groupSize, int numCreatedChild);
+	~Group();
+	void createRandomIndivs(const Parameter& param);
+	void changeGeneration_MGG();
+	void changeGeneration_ER();
 	Individual getBestIndiv();
-
 	inline Individual bestIndividual() const { return _indivs[_bestIndex]; }
 	inline int bestDiameter() const { return _indivs[_bestIndex].diameter; }
 	inline double bestASPL() const { return  _indivs[_bestIndex].aspl; }

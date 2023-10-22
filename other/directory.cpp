@@ -13,6 +13,4 @@ bool Directory::exist(string dirName) {
 
 void Directory::create(string dirName) {
     mkdir(dirName.c_str(), 0777);
-
-
 }

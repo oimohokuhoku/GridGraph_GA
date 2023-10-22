@@ -1,9 +1,10 @@
 #include "parameter.hpp"
 #include "../other/command_line_argument.hpp"
-#include<iostream>
-#include<fstream>
-#include<algorithm>
+#include <iostream>
+#include <fstream>
+#include <algorithm>
 #include <string>
+#include <climits>
 using namespace std;
 
 Parameter::Parameter(const string& srcFile) {
@@ -14,15 +15,11 @@ Parameter::Parameter(const string& srcFile) {
         exit(0);
     }
 
-    int doLS;
     ifs >> _numColumn >> _numRow >> _degree >> _maxLength;
     ifs >> _maxGeneration >> _groupSize >> _numChild >> _mutateIndiv >> _mutateGene;
     ifs >> _crossover >> _twx_numLoop >> _twx_PerimeterSelectRate;
-    ifs >> doLS;
-
-    if(doLS == 0) _doLocalSearch = false;
-    else          _doLocalSearch = true;
-
+    ifs >> _gx_MaxNumLS;
+    ifs >> _numInitLS;
     this->_fromArg = false;
 }
 
@@ -34,15 +31,13 @@ Parameter::Parameter(const CommandLineArgument& arg) {
 Parameter::~Parameter() {
     if(_fromArg) return;
 
-    int doLS;
-    if(_doLocalSearch) doLS = 1;
-    else              doLS = 0;
-
     ofstream ofs(_srcFile);
     ofs << _numColumn << " " << _numRow << " " << _degree << " " << _maxLength << endl;
     ofs << _maxGeneration << " " << _groupSize << " " << _numChild << " " << _mutateIndiv << " " << _mutateGene << endl;
-    ofs << _crossover << " " << _twx_numLoop << " " << _twx_PerimeterSelectRate << endl;
-    ofs << doLS << endl;
+    ofs << _crossover << endl;
+    ofs << _twx_numLoop << " " << _twx_PerimeterSelectRate << endl;
+    ofs << _gx_MaxNumLS << endl;
+    ofs << _numInitLS << endl;
 }
 
 void Parameter::showParam() const {
@@ -54,19 +49,27 @@ void Parameter::showParam() const {
     cout << "[GA]" << endl;
     cout << "Max Generation   : " << _maxGeneration << endl;
     cout << "Population       : " << _groupSize << endl;
-    cout << "Number of childs : " << _numChild << endl;
+    cout << "Offspring        : " << _numChild << endl;
     cout << "Mutate probably  : " << _mutateIndiv << "(Individual), " << _mutateGene << "(Gene)" << endl;
     cout << "Crossover        : " << _crossover << endl;
-    if(_doLocalSearch)
-        cout << "Local Search     : enabled" << endl;
+    if(_numInitLS == INT_MAX) 
+        cout << "Number of initial LS : Max" << endl;
     else
-        cout << "Local Search     : disabled" << endl;
+        cout << "Number of initial LS : " << _numInitLS << endl;
 
     if(_crossover.compare("twx") == 0) {
         cout << endl;
         cout << "[TWX]" << endl;
         cout << "Number of Inheritance : " << _twx_numLoop << endl;
         cout << "Rate of perimeter nodes selection : " << _twx_PerimeterSelectRate << endl;
+    }
+
+    if(_crossover.compare("gx") == 0) {
+        cout << endl;
+        cout << "[GX]" << endl;
+        cout << "Max number of patial local search : ";
+        if(_gx_MaxNumLS == INT_MAX) cout << "MAX" << endl;
+        else                        cout << _gx_MaxNumLS << endl;
     }
 }
 
@@ -82,15 +85,20 @@ void Parameter::writeParam(ofstream& ofs) const {
     ofs << "mutate probably(individual)," << _mutateIndiv << endl;
     ofs << "mutate probably(gene)," << _mutateGene << endl;
     ofs << "crossover," << _crossover << endl;
-    if(_doLocalSearch)
-        ofs << "local Search,enabled" << endl;
+    if(_numInitLS == INT_MAX) 
+        ofs << "Number of initial LS,Max" << endl;
     else
-        ofs << "local Search,disable" << endl;
+        ofs << "Initial Local Search," << _numInitLS << endl;
 
     if(_crossover.compare("twx") == 0) {
         ofs << endl;
-        ofs << "number of inheritance : " << _twx_numLoop << endl;
-        ofs << "rate of perimeter nodes selection : " << _twx_PerimeterSelectRate << endl;
+        ofs << "number of inheritance," << _twx_numLoop << endl;
+        ofs << "rate of perimeter nodes selection," << _twx_PerimeterSelectRate << endl;
+    }
+
+    if(_crossover.compare("gx") == 0) {
+        ofs << endl;
+        ofs << "max number of patial local search," << _gx_MaxNumLS << endl;
     }
 }
 
@@ -137,8 +145,10 @@ void Parameter::setParam(const CommandLineArgument& arg, bool allRequired) {
         setCrossover(value);
     }
 
-    if(arg.existOption("-local_search") || allRequired) 
-        setDoLocalSearch(arg.getValueBool("-local_search"));
+    if(arg.existOption("-init_ls") || allRequired) {
+        string value = arg.getValueString("-init_ls");
+        setNumInitLocalSearch(value);
+    }
 
     if(_crossover == "twx") {
         if(arg.existOption("-twx_loop") || allRequired)
@@ -146,6 +156,13 @@ void Parameter::setParam(const CommandLineArgument& arg, bool allRequired) {
 
         if(arg.existOption("-twx_perimeter") || allRequired)
             setTwxPerimeterSelectRate(arg.getValueDouble("-twx_perimeter"));
+    }
+
+    if(_crossover == "gx") {
+        if(arg.existOption("-gx_ls") || allRequired) {
+            string value = arg.getValueString("-gx_ls");
+            setGxMaxNumLS(value);
+        }
     }
 }
 
@@ -175,7 +192,7 @@ void Parameter::setGroupSize(int value) {
 }
 
 void Parameter::setNumChild(int value) {
-    if(value < 2) value = 2;
+    if(value < 1) value = 1;
     _numChild = value;
 }
 
@@ -212,6 +229,24 @@ void Parameter::setTwxPerimeterSelectRate(double value) {
     _twx_PerimeterSelectRate = value;
 }
 
-void Parameter::setDoLocalSearch(bool value) {
-    _doLocalSearch = value;
+void Parameter::setGxMaxNumLS(string value) {
+    if(value == "max") {
+        _gx_MaxNumLS = INT_MAX;
+        return;
+    }
+
+    int valueI = stoi(value);
+    if(valueI < 0) valueI = 0;
+    _gx_MaxNumLS = valueI;
+}
+
+void Parameter::setNumInitLocalSearch(string value) {
+    if(value == "max") {
+        _numInitLS = INT_MAX;
+        return;
+    }
+
+    int valueI = stoi(value);
+    if(valueI < 0) valueI = 0;
+    _numInitLS = valueI;
 }

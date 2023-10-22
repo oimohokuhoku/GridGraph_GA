@@ -19,12 +19,12 @@ void ICrosser::modifyGraph(Individual& indiv) {
 
 	int n1, n2, c;
 	while (true) {
-		if(nodeQ.isEmpty()) return;
+		if(nodeQ.empty()) return;
 		n1 = nodeQ.dequeue();
 		c = 1 + nodeQ.count() * 2;
 
 		while(c > 0){
-			if(nodeQ.isEmpty()) return;
+			if(nodeQ.empty()) return;
 
 			c--;
 			n2 = nodeQ.dequeue();

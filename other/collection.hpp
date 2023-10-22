@@ -7,13 +7,13 @@ class Collection {
 public:
 	Collection();
 	Collection(int size);
+	Collection(const Collection<T>& obj);
 	~Collection();
 
-	Collection(const Collection<T>& obj);
 	Collection<T>& operator= (const Collection<T>& obj);
-
-	inline int size() const;
 	T& operator[](int i) const;
+	Collection<T> concat(const Collection<T>& collection) const;
+	inline int size() const;
 
 private:
 	int _size;
@@ -45,7 +45,6 @@ template<class T> Collection<T>::Collection(const Collection<T>& obj) {
 		this->_elements[i] = obj._elements[i];
 }
 
-
 template<class T> Collection<T>& Collection<T>::operator=(const Collection<T>& obj) {
 	if(this->_elements != nullptr) delete[] this->_elements;
 
@@ -59,6 +58,21 @@ template<class T> Collection<T>& Collection<T>::operator=(const Collection<T>& o
 	}
 
 	return *this;
+}
+
+template<class T> Collection<T> Collection<T>::concat(const Collection<T>& collection) const {
+	int size = this->_size + collection._size;
+	Collection<T> result(size);
+
+	for(int i = 0; i < this->size(); ++i) {
+		result._elements[i] = this->_elements[i];
+	}
+
+	for(int i = 0; i < collection.size(); ++i) {
+		result._elements[this->size() + i] = collection._elements[i];
+	}
+
+	return result;
 }
 
 template<class T> int Collection<T>::size() const{

@@ -1,4 +1,4 @@
-#include "Random.hpp"
+#include "random.hpp"
 
 void Random::init() {
     std::random_device rnd;

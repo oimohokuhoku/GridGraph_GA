@@ -4,6 +4,10 @@
 #include "../mutate/two_opt.hpp"
 #include "../evaluate/adj_aspl.hpp"
 #include "../../other/random.hpp"
+#include "ga/other/meta_observer.hpp"
+
+GraftingCrossover::GraftingCrossover(int maxNumLS) : _MAX_NUM_LS(maxNumLS) {
+}
 
 void GraftingCrossover::operator() (const Individual& parentA, const Individual& parentB, Individual& child) {
     child.clear();
@@ -16,7 +20,7 @@ void GraftingCrossover::operator() (const Individual& parentA, const Individual&
     obtainOtherEdge(parentA, parentB, child);
     modifyGraph(child);
 
-    localSearch(nodeBelonging, child);
+    //localSearch(nodeBelonging, child);
 
     delete[] nodeBelonging;
 }
@@ -143,12 +147,22 @@ void GraftingCrossover::obtainOtherEdge(const Individual& parentA, const Individ
 void GraftingCrossover::localSearch(int const *const nodeBelonging, Individual& child) {
     int* aroundBorderNodes = new int[numNode() + 1];
     int* nearNodes = new int[length() * length() * 4];
-    Individual beforeIndiv = child;
     TwoOpt mutate;
-    ADJ_ASPL evaluater;
+    ADJ_ASPL evaluate;
+
     collectBorderNodes(nodeBelonging, aroundBorderNodes);
 
+    if(aroundBorderNodes[0] == -1) {
+        delete[] aroundBorderNodes;
+        delete[] nearNodes;
+        return;
+    }
+
+    evaluate(child);
+    Individual beforeIndiv = child;
+
     bool refine = false;
+    int numCalcAspl = 0;
     int i = 0;
     while(true) {
         int nodeA1 = aroundBorderNodes[i];
@@ -166,13 +180,21 @@ void GraftingCrossover::localSearch(int const *const nodeBelonging, Individual& 
                     if(getLength(nodeA2, nodeB2) >= length()) continue;
 
                     mutate.twoOpt_safe(child, nodeA1, nodeA2, nodeB1, nodeB2);
-                    evaluater(child);
-                    if(child < beforeIndiv) { 
+                    evaluate(child);
+                    numCalcAspl++;
+
+                    if(child.betterThan(beforeIndiv)) { 
                         beforeIndiv = child; 
-                        refine = true; 
+                        refine = true;
                     }
                     else {             
                         child = beforeIndiv; 
+                    }
+
+                    if(numCalcAspl > _MAX_NUM_LS) {
+                        delete[] aroundBorderNodes;
+                        delete[] nearNodes;
+                        return;
                     }
                 }
             }
@@ -180,13 +202,12 @@ void GraftingCrossover::localSearch(int const *const nodeBelonging, Individual& 
         }
         i++;
 
-        if(aroundBorderNodes[i] != -1)  {
+        if(aroundBorderNodes[i] == -1)  {
             if(!refine) break;
             refine = false;
             i = 0;
         }
     }
-
     delete[] aroundBorderNodes;
     delete[] nearNodes;
 }
@@ -303,4 +324,3 @@ void GraftingCrossover::collectNearNodes(int srcNode, int* result, Individual& t
 
     result[index] = -1;
 }
-

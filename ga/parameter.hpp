@@ -26,7 +26,8 @@ public:
     void setCrossover(string& value);
     void setTwxNumLoop(int value);
     void setTwxPerimeterSelectRate(double value);
-    void setDoLocalSearch(bool value);
+    void setGxMaxNumLS(string value);
+    void setNumInitLocalSearch(string value);
     
 
     inline int numColumn() const { return _numColumn; }
@@ -41,7 +42,8 @@ public:
     inline const string& crossover() const { return _crossover; }
     inline int twxNumLoop() const { return _twx_numLoop; }
     inline double twxPerimeterSelectRate() const { return _twx_PerimeterSelectRate; }
-    inline bool doLocalSearch() const { return _doLocalSearch; }
+    inline double gxMaxNumLS() const { return _gx_MaxNumLS; }
+    inline int numInitLocalSearch() const { return _numInitLS; }
 
 private:
     int _numColumn;
@@ -56,7 +58,8 @@ private:
     string _crossover;
     int _twx_numLoop;
     double _twx_PerimeterSelectRate;
-    bool _doLocalSearch;
+    int _gx_MaxNumLS;
+    int _numInitLS;
 
     bool _fromArg;
     string _srcFile;

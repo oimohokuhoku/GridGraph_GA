@@ -5,7 +5,7 @@ class Individual;
 
 class Randomizer: public GridGraph{
 public:
-    Randomizer() = default;
-    ~Randomizer() = default;
-    void randomize(Individual& indiv);
+    void operator()(Individual& indiv);
+private:
+    void setRandomEdge(Individual& indiv);
 };

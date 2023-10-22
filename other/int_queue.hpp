@@ -7,7 +7,7 @@ public:
 	void enqueue(int value);
 	int dequeue();
 	int count();
-	bool isEmpty();
+	bool empty();
 	bool contain(int element);
 	void clear();
 

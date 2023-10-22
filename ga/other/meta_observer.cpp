@@ -10,8 +10,7 @@ void MetaObserver::reset() {
 	MetaObserver::_childVariation = 0;
 	MetaObserver::_childPopulation = 0;
 	MetaObserver::_edgeLengthPopulation = 0;
-	MetaObserver::_sumNumAsplEvaluation = 0;
-	MetaObserver::_numLocalSearch = 0;
+	MetaObserver::_numAsplEvaluation = 0;
 
 	for(int i = 0; i < MetaObserver::_maxLength; ++i)
 		MetaObserver::_edgeLengthDistribution[i] = 0;
@@ -26,11 +25,11 @@ void MetaObserver::calcRefineRate(Collection<Individual>& parents, Collection<In
 	Individual* better;
 	int refineCount = 0;
 
-	if(parents[0] < parents[1]) better = &parents[0];
+	if(parents[0].betterThan(parents[1])) better = &parents[0];
 	else						better = &parents[1];
 
 	for(int i = 0; i < childs.size(); ++i)
-		if(childs[i] < *better) refineCount++;
+		if(childs[i].betterThan(*better)) refineCount++;
 
 	MetaObserver::_refineCount += refineCount;
 	MetaObserver::_refinePopulation += childs.size();
@@ -74,9 +73,8 @@ void MetaObserver::calcLengthDistribution(Individual& indiv) {
 	MetaObserver::_edgeLengthPopulation++;
 }
 
-void MetaObserver::calcNumAsplEvaluation(int numAsplEvaluation) {
-	_sumNumAsplEvaluation += numAsplEvaluation;
-	_numLocalSearch++;
+void MetaObserver::countNumAsplEvaluation() {
+	_numAsplEvaluation ++;
 }
 
 double MetaObserver::_inharitRate = 0;
@@ -88,5 +86,4 @@ int MetaObserver::_childPopulation = 0;
 const int MetaObserver::_maxLength = 10;
 int MetaObserver::_edgeLengthDistribution[10];
 int MetaObserver::_edgeLengthPopulation = 0;
-int MetaObserver::_sumNumAsplEvaluation = 0;
-int MetaObserver::_numLocalSearch = 0;
+int MetaObserver::_numAsplEvaluation = 0;

@@ -5,13 +5,14 @@
 #include <memory>
 #include "ga/individual.hpp"
 #include "ga/evaluate/adj_aspl.hpp"
-#include "ga/select/i_selector.hpp"
+#include "ga/select/elitist_recombination.hpp"
 #include "ga/select/mgg.hpp"
 #include "ga/crossover/crossover.hpp"
 #include "ga/mutate/two_opt.hpp"
 #include "ga/other/randomizer.hpp"
 #include "ga/other/local_search.hpp"
 #include "ga/other/meta_observer.hpp"
+#include "ga/other/init_graph_generator.hpp"
 #include "io/edges_file_writer.hpp"
 #include "other/collection.hpp"
 using std::unique_ptr;
@@ -32,60 +33,85 @@ Group::~Group() {
 	delete crossover;
 }
 
-void Group::createRandomIndivs() {
-	ADJ_ASPL evaluater;
-	TwoOpt twoOpt;
-	Randomizer randomizer;
-
-	for (int i = 0; i < _GROUP_SIZE; ++i) {
-		randomizer.randomize(_indivs[i]);
-
-		while (true) {
-			evaluater(_indivs[i]);
-			
-			//modify graph until graph becomes linked
-			int dislink = evaluater.dislinkedNode();
-			if (dislink == -1) break;
-			twoOpt.twoOpt(_indivs[i], dislink);
-		}
-
-		if(doLocalSearch) {
-			LocalSearch ls;
-			ls.doLocalSearch(_indivs[i]);
+void Group::createRandomIndivs(const Parameter& param) {
+	if(numInitLocalSearch > 0) {
+		InitGraph::load(param, numInitLocalSearch, _indivs);
+		ADJ_ASPL evaluate;
+		for(int i = 0; i < _GROUP_SIZE; ++i)
+			evaluate(_indivs[i]);
+	}
+	else {
+		Randomizer randomizer;
+		for (int i = 0; i < _GROUP_SIZE; ++i) {
+			randomizer(_indivs[i]);
 		}
 	}
 
 	tallyFitness();
 }
 
-void Group::changeGeneration() {
+void Group::changeGeneration_MGG() {
+	MetaObserver::reset();
 	MGG selector;
 	TwoOpt mutater;
 	ADJ_ASPL evaluate;
-	LocalSearch ls;
-	MetaObserver::reset();
-	unique_ptr<ICopySelector> copySelector = selector.generateCopySelector(this->_indivs);
-	unique_ptr<ISurviveSelector> surviveSelector = selector.generateSurviveSelector();
+	LocalSearch localSearch;
 
-	int childNum = 0;
-	this->_indivs = Collection<Individual>(_GROUP_SIZE);
+	int parentIndexA, parentIndexB;
+	Collection<Individual> parents(2);
+	Collection<Individual> childs(_NUM_CREATED_CHILD);
 
-	while (childNum < _GROUP_SIZE) {
-		Collection<Individual> parents = copySelector->select();
-		Collection<Individual> childs(_NUM_CREATED_CHILD);
+	selector.copySelect(&parentIndexA, &parentIndexB, _GROUP_SIZE);
+	parents[0] = _indivs[parentIndexA];
+	parents[1] = _indivs[parentIndexB];
 
-		for(int i = 0; i < _NUM_CREATED_CHILD; ++i) (*crossover)(parents[0], parents[1], childs[i]);
+	for(int i = 0; i < _NUM_CREATED_CHILD; ++i) {
+		(*crossover)(parents[0], parents[1], childs[i]);
+		mutater(childs[i]);
+		evaluate(childs[i]);
+		if(numInitLocalSearch) localSearch(childs[i]);
+	}
 
-		for (int i = 0; i < _NUM_CREATED_CHILD; ++i) mutater(childs[i]);
-		
-		for (int i = 0; i < _NUM_CREATED_CHILD; ++i) evaluate(childs[i]);
+	Individual survivorsA, survivorsB;
+	selector.surviveSelect(parents, childs, survivorsA, survivorsB);
 
-		if(doLocalSearch)
-			for (int i = 0; i < _NUM_CREATED_CHILD; ++i) ls.doLocalSearch(childs[i]);
+	_indivs[parentIndexA] = survivorsA;
+	_indivs[parentIndexB] = survivorsB;
 
-		Collection<Individual> survivors = surviveSelector->select(parents, childs);
+	MetaObserver::calcChildVariation(parents, childs);
+	MetaObserver::calcRefineRate(parents, childs);
 
-		this->addIndiv(survivors, &childNum);
+	this->tallyFitness();
+	_generation++;
+}
+
+void Group::changeGeneration_ER() {
+	Elitist_Recombination selector(_GROUP_SIZE);
+	TwoOpt mutater;
+	ADJ_ASPL evaluate;
+	LocalSearch localSearch;
+
+	int parentIndexA, parentIndexB;
+	Collection<Individual> parents(2);
+	Collection<Individual> childs(_NUM_CREATED_CHILD);
+
+	for(int i = 0; i < _GROUP_SIZE / 2; ++i) {
+		selector.copySelect(&parentIndexA, &parentIndexB);
+		parents[0] = _indivs[parentIndexA];
+		parents[1] = _indivs[parentIndexB];
+
+		for(int i = 0; i < _NUM_CREATED_CHILD; ++i) {
+			(*crossover)(parents[0], parents[1], childs[i]);
+			mutater(childs[i]);
+			evaluate(childs[i]);
+			if(numInitLocalSearch) localSearch(childs[i]);
+		}
+
+		Individual survivorsA, survivorsB;
+		selector.surviveSelect(parents, childs, survivorsA, survivorsB);
+
+		_indivs[parentIndexA] = survivorsA;
+		_indivs[parentIndexB] = survivorsB;
 
 		MetaObserver::calcChildVariation(parents, childs);
 		MetaObserver::calcRefineRate(parents, childs);
@@ -104,8 +130,8 @@ void Group::tallyFitness() {
 	_bestIndex = 0;
 	_worstIndex = 0;
 	for(int i = 1; i < _GROUP_SIZE; ++i) {
-		if(_indivs[i] < _indivs[_bestIndex]) _bestIndex = i;
-		if(_indivs[_worstIndex] < _indivs[i]) _worstIndex = i;
+		if(_indivs[i].betterThan(_indivs[_bestIndex])) _bestIndex = i;
+		if(_indivs[_worstIndex].betterThan(_indivs[i])) _worstIndex = i;
 	}
 
 	double sumASPL = 0;

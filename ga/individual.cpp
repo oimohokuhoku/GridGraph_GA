@@ -1,15 +1,17 @@
 #include "individual.hpp"
 #include<iostream>
+#include<climits>
 #include "../other/random.hpp"
-using std::cout, std::endl;
+#include "other/console.hpp"
+using std::cout, std::endl, std::to_string;
 
 Individual::Individual() {
 	adjacent = new int*[numNode()];
 	for(int i = 0; i < numNode(); ++i) adjacent[i] = new int[degree()];
 	degrees = new int[numNode()];
 
-	diameter = -1;
-	aspl = -1;
+	diameter = INT_MAX;
+	aspl = INT_MAX;
 }
 
 Individual::Individual(const Individual& obj) : Individual(){
@@ -73,13 +75,13 @@ Individual& Individual::operator =(const Individual& operand) {
 	return *this;
 }
 
-bool Individual::operator==(const Individual& operand)const {
+bool Individual::equalFitness(const Individual& operand)const {
 	bool diam = (this->diameter == operand.diameter);
 	bool aspl = (this->aspl == operand.aspl);
 	return (diam && aspl);
 }
 
-bool Individual::operator<(const Individual& operand)const {
+bool Individual::betterThan(const Individual& operand)const {
 	if (this->diameter < operand.diameter) return true;
 
 	if(this->diameter == operand.diameter) {
@@ -89,7 +91,7 @@ bool Individual::operator<(const Individual& operand)const {
 	return false;
 }
 
-bool Individual::operator>(const Individual& operand)const {
+bool Individual::worseThan(const Individual& operand)const {
 	if (this->diameter > operand.diameter) return true;
 
 	if (this->diameter == operand.diameter) {
@@ -97,14 +99,6 @@ bool Individual::operator>(const Individual& operand)const {
 	}
 
 	return false;
-}
-
-bool Individual::operator<=(const Individual& operand)const {
-	return !(*this > operand);
-}
-
-bool Individual::operator>=(const Individual& operand)const {
-	return !(*this < operand);
 }
 
 void Individual::clear() {
@@ -129,6 +123,24 @@ void Individual::addEdge(int nodeA, int nodeB) {
 	degrees[nodeA]++;
 	adjacent[nodeB][degrees[nodeB]] = nodeA;
 	degrees[nodeB]++;
+}
+
+void Individual::removeEdge(int nodeA, int nodeB) {
+	int degA = getDegreeIndex(nodeA, nodeB);
+	int degB = getDegreeIndex(nodeB, nodeA);
+	int tailA = degrees[nodeA] - 1;
+	int tailB = degrees[nodeB] - 1;
+
+	if(degA == -1 || degB == -1) 
+		Console::ShowError("Individual::removeEdge()", "edge" + to_string(nodeA) + "-" + to_string(nodeB) + "isn't exist");
+
+	adjacent[nodeA][degA] = adjacent[nodeA][tailA];
+	adjacent[nodeA][tailA] = -1;
+	degrees[nodeA]--;
+	
+	adjacent[nodeB][degB] = adjacent[nodeB][tailB];
+	adjacent[nodeB][tailB] = -1;
+	degrees[nodeB]--;
 }
 
 bool Individual::haveEdge(int nodeA, int nodeB) const {
@@ -166,4 +178,11 @@ void Individual::showNodes() const {
 		cout << degrees[n] << endl;
 	}
 	cout << endl;
+}
+
+int Individual::getDegreeIndex(int nodeA, int nodeB) const {
+	for(int d = 0; d < degree(); ++d) {
+		if(this->adjacent[nodeA][d] == nodeB) return d;
+	}
+	return -1;
 }
