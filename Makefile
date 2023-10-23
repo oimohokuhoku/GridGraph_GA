@@ -4,6 +4,9 @@ SOURCES += ga/parameter.cpp
 SOURCES += ga/group.cpp
 SOURCES += ga/individual.cpp
 SOURCES += ga/evaluate/adj_aspl.cpp
+SOURCES += ga/select/copy_selector.cpp
+SOURCES += ga/select/survive_selector.cpp
+SOURCES += ga/select/elitist_recombination.cpp
 SOURCES += ga/select/mgg.cpp
 SOURCES += ga/mutate/two_opt.cpp
 SOURCES += ga/mutate/mutater_base.cpp
@@ -11,21 +14,25 @@ SOURCES += ga/crossover/i_crosser.cpp
 SOURCES += ga/crossover/twx.cpp
 SOURCES += ga/crossover/resx.cpp
 SOURCES += ga/crossover/gx.cpp
+SOURCES += ga/crossover/dmsx.cpp
 SOURCES += ga/grid_graph_base.cpp
 SOURCES += ga/other/randomizer.cpp
 SOURCES += ga/other/local_search.cpp
 SOURCES += ga/other/meta_observer.cpp
+SOURCES += ga/other/init_graph_generator.cpp
 SOURCES += io/edges_file_writer.cpp
 SOURCES += io/edges_file_reader.cpp
 SOURCES += other/int_queue.cpp
 SOURCES += other/command_line_argument.cpp
+SOURCES += other/directory.cpp
+SOURCES += other/random.cpp
+SOURCES += other/console.cpp
 SOURCES += test/unit_test.cpp
 
-LIBRARY = other/random.a
-LIBRARY += other/directory.a
 
 COMPILE_OPTION = -g -march=native
 INCLUDE_ROOT = -I ./
+
 
 OBJECTS_DIR = ./object_file/
 OBJECTS_FILE = $(notdir $(SOURCES:.cpp=.o))
@@ -111,6 +118,22 @@ $(word 24, $(OBJECTS_PATH)): $(word 24, $(SOURCES))
 
 $(word 25, $(OBJECTS_PATH)): $(word 25, $(SOURCES))
 	g++ $(COMPILE_OPTION) $(INCLUDE_ROOT) -o $@ -c $<
+
+$(word 26, $(OBJECTS_PATH)): $(word 26, $(SOURCES))
+	g++ $(COMPILE_OPTION) $(INCLUDE_ROOT) -o $@ -c $<
+
+$(word 27, $(OBJECTS_PATH)): $(word 27, $(SOURCES))
+	g++ $(COMPILE_OPTION) $(INCLUDE_ROOT) -o $@ -c $<
+
+$(word 28, $(OBJECTS_PATH)): $(word 28, $(SOURCES))
+	g++ $(COMPILE_OPTION) $(INCLUDE_ROOT) -o $@ -c $<
+
+$(word 29, $(OBJECTS_PATH)): $(word 29, $(SOURCES))
+	g++ $(COMPILE_OPTION) $(INCLUDE_ROOT) -o $@ -c $<
+
+$(word 30, $(OBJECTS_PATH)): $(word 30, $(SOURCES))
+	g++ $(COMPILE_OPTION) $(INCLUDE_ROOT) -o $@ -c $<
+
 
 .PHONY: clean
 clean: $(OBJECTS_PATH)

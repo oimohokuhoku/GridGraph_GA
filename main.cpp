@@ -10,7 +10,10 @@
 #include "other/command_line_argument.hpp"
 #include "other/directory.hpp"
 #include "ga/other/meta_observer.hpp"
+#include "ga/other/init_graph_generator.hpp"
 using namespace std;
+
+static const string RESULT_DIR = "result";
 
 void showHelp() {
     cout << "# When there is no argument, genetic algorithm is executed" << endl;
@@ -34,10 +37,32 @@ void showHelp() {
     cout << "#    -mutate_indiv [double] : Mutate probably for each individual" << endl;
     cout << "#    -mutate_gene [double]  : Mutate probably for each gene" << endl;
     cout << "#    -cross [string] : Crossover method (\"twx\" or \"gx\")" << endl;
-    cout << "#    -local_search [0 or 1] : Whether to do local search (0:disable, 1:enable)" << endl;
+    cout << "#    -init_ls [0 or 1] : Whether to do local search (0:disable, 1:enable)" << endl;
     cout << "#" << endl;
     cout << "#    -twx_loop [int] : Number of inheritance in TWX" << endl;
     cout << "#    -twx_perimeter [double] : Rate of perimeter nodes selection in TWX" << endl;
+    cout << "#" << endl;
+    cout << "#    -gx_ls [int] : Rate of perimeter nodes selection in TWX" << endl;
+
+    cout << endl;
+    cout << "# -from_arg : Execute GA with parameter specified in command line argument" << endl;
+    cout << "#    -width [int]  : Number of column in a graph" << endl;
+    cout << "#    -height [int] : Number of row in a graph" << endl;
+    cout << "#    -degree [int] : Degree of a graph" << endl;
+    cout << "#    -length [int] : Max edge length in a graph" << endl;
+    cout << "#" << endl;
+    cout << "#    -generation [int] : Max generation in GA" << endl;
+    cout << "#    -population [int] : Individual population of a group" << endl;
+    cout << "#    -offspring [int]  : Number of offsprings created with each crossover" << endl;
+    cout << "#    -mutate_indiv [double] : Mutate probably for each individual" << endl;
+    cout << "#    -mutate_gene [double]  : Mutate probably for each gene" << endl;
+    cout << "#    -cross [string] : Crossover method (\"twx\" or \"gx\")" << endl;
+    cout << "#    -init_ls [0 or 1] : Whether to do local search (0:disable, 1:enable)" << endl;
+    cout << "#" << endl;
+    cout << "#    -twx_loop [int] : Number of inheritance in TWX" << endl;
+    cout << "#    -twx_perimeter [double] : Rate of perimeter nodes selection in TWX" << endl;
+    cout << "#" << endl;
+    cout << "#    -gx_ls [int] : Rate of perimeter nodes selection in TWX" << endl;
     
 }
 
@@ -60,27 +85,32 @@ string getTimeString() {
     return year + month + day + hour + min + sec;
 }
 
-double transition(Parameter& param, int seed) {
+double transition(Parameter& param, int seed, string message = "") {
     cout << "seed : " << seed << endl << endl;
     cout << "Initializing..." << endl;
     Random::init(seed);
     GeneticAlgorithm ga(param);
 
-    const string RESULT_DIR("result");
-    if(!Directory::exist(RESULT_DIR)) Directory::create(RESULT_DIR);
-    string dirName = RESULT_DIR + "/" + getTimeString();
+    string dirName;
+    if(message == "")
+        dirName = RESULT_DIR + "/" + getTimeString();
+    else    
+        dirName = RESULT_DIR + "/" + message;
     Directory::create(dirName);
 
-    ofstream ofs(dirName + "/parameter.csv");
-    param.writeParam(ofs);
-    ofs << "seed," << seed << endl;
-    ofs.close();
+    ofstream ofsParam(dirName + "/parameter.csv");
+    ofstream ofsTrans(dirName + "/transition.csv");
+    param.writeParam(ofsParam);
+    ofsParam << "seed," << seed << endl;
+    ofsParam.close();
     
     GeneticAlgorithm::showHeader();
     ga.showParameter();
+    ga.recordParameter(ofsTrans);
     while(true) {
         ga.step();
         ga.showParameter();
+        ga.recordParameter(ofsTrans);
         if(ga.isFinished()) break;
     }
     
@@ -88,20 +118,27 @@ double transition(Parameter& param, int seed) {
     return ga.bestAspl();
 }
 
-double transition(Parameter& param) {
+double transition(Parameter& param, string message = "") {
     Random::init();
     Random random;
     int seed = random.randomInt(INT_MAX);
-    return transition(param, seed);
+    return transition(param, seed, message);
 }
 
-void repeat(int numLoop,  Parameter& param, int seed) {
+void repeat(int numLoop,  Parameter& param, int seed, string message = "") {
+    if(message == "") message = getTimeString();
+    string dirName = RESULT_DIR + "/" + message;
+    Directory::create(dirName);
+
     double* aspl = new double[numLoop];
     double* processTimes = new double[numLoop];
 
     for(int i = 0; i < numLoop; ++i) {
+        string fileName = message + "/" + to_string(i);
+
         cout << "=== Case" << i + 1 << " ===" << endl;
-        aspl[i] = transition(param, seed + i);
+        
+        aspl[i] = transition(param, seed + i, fileName);
         cout << endl;
     }
 
@@ -116,15 +153,21 @@ void repeat(int numLoop,  Parameter& param, int seed) {
     delete[] processTimes;
 }
 
-void repeat(int numLoop,  Parameter& param) {
+void repeat(int numLoop,  Parameter& param, string message = "") {
     Random::init();
     Random random;
     int seed = random.randomInt(INT_MAX);
-    repeat(numLoop, param, seed);
+    repeat(numLoop, param, seed, message);
 }
 
 int main(int argc, char* argv[]) {
     CommandLineArgument arg(argc, argv);
+
+    string message;
+    if(arg.existOption("-m")) message = arg.getValueString("-m");
+    else message = "";
+
+    if(!Directory::exist(RESULT_DIR)) Directory::create(RESULT_DIR);
 
     if(arg.existOption("-help")) {
         showHelp();
@@ -138,17 +181,21 @@ int main(int argc, char* argv[]) {
         Parameter param("setting.dat");
         param.showParam();
     }
+    else if(arg.existOption("-generate_init_graph")) {
+        Parameter param = arg.existOption("-from_arg") ? Parameter(arg) : Parameter("setting.dat");
+        InitGraph::generate(param, 1000);
+    }
     else if(arg.existOption("-repeat")) {
         Parameter param = arg.existOption("-from_arg") ? Parameter(arg) : Parameter("setting.dat");
         param.showParam(); cout << endl;
         int numLoop = arg.getValueInt("-repeat");
-        if(arg.existOption("-seed")) repeat(numLoop, param, arg.getValueInt("-seed"));
-        else                         repeat(numLoop, param);
+        if(arg.existOption("-seed")) repeat(numLoop, param, arg.getValueInt("-seed"), message);
+        else                         repeat(numLoop, param, message);
     }
     else {
         Parameter param = arg.existOption("-from_arg") ? Parameter(arg) : Parameter("setting.dat");
         param.showParam(); cout << endl;
-        if(arg.existOption("-seed")) transition(param, arg.getValueInt("-seed"));
-        else                         transition(param);
+        if(arg.existOption("-seed")) transition(param, arg.getValueInt("-seed"), message);
+        else                         transition(param, message);
     }
 }
