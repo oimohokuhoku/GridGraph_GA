@@ -20,7 +20,7 @@ void GraftingCrossover::operator() (const Individual& parentA, const Individual&
     obtainOtherEdge(parentA, parentB, child);
     modifyGraph(child);
 
-    //localSearch(nodeBelonging, child);
+    localSearch(nodeBelonging, child);
 
     delete[] nodeBelonging;
 }
@@ -145,6 +145,8 @@ void GraftingCrossover::obtainOtherEdge(const Individual& parentA, const Individ
 }
 
 void GraftingCrossover::localSearch(int const *const nodeBelonging, Individual& child) {
+    if(_MAX_NUM_LS == 0) return;
+
     int* aroundBorderNodes = new int[numNode() + 1];
     int* nearNodes = new int[length() * length() * 4];
     TwoOpt mutate;
@@ -190,7 +192,7 @@ void GraftingCrossover::localSearch(int const *const nodeBelonging, Individual& 
                     else {             
                         child = beforeIndiv; 
                     }
-
+                    
                     if(numCalcAspl > _MAX_NUM_LS) {
                         delete[] aroundBorderNodes;
                         delete[] nearNodes;

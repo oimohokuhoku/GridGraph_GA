@@ -69,7 +69,6 @@ void Group::changeGeneration_MGG() {
 		(*crossover)(parents[0], parents[1], childs[i]);
 		mutater(childs[i]);
 		evaluate(childs[i]);
-		if(numInitLocalSearch) localSearch(childs[i]);
 	}
 
 	Individual survivorsA, survivorsB;
@@ -104,7 +103,6 @@ void Group::changeGeneration_ER() {
 			(*crossover)(parents[0], parents[1], childs[i]);
 			mutater(childs[i]);
 			evaluate(childs[i]);
-			if(numInitLocalSearch) localSearch(childs[i]);
 		}
 
 		Individual survivorsA, survivorsB;
