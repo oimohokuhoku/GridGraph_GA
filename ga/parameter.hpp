@@ -12,6 +12,7 @@ public:
     void showParam() const;
     void writeParam(std::ofstream& ofs) const;
     string getProblemName() const;
+    string ToString(int seed) const;
 
     void setParam(const CommandLineArgument& arg, bool allRequired = false);
     void setNumColumn(int value);

@@ -111,6 +111,37 @@ string Parameter::getProblemName() const {
     return result;
 }
 
+string Parameter::ToString(int seed) const {
+    string result;
+    result = "w" + to_string(numColumn());
+    result += "_h" + to_string(numRow());
+    result += "_d" + to_string(degree());
+    result += "_l" + to_string(maxLength());
+    result += "_g" + to_string(maxGeneration());
+    result += "_p" + to_string(groupSize());
+    result += "_o" + to_string(numChild());
+    result += "_mi" + to_string(mutateIndiv());
+    result += "_mg" + to_string(mutateGene());
+    result += "_c" + crossover();
+
+    if(crossover() == "gx") {
+        result += "_gx";
+        if(gxMaxNumLS() == INT_MAX) result += "max";
+        else                        result += to_string(gxMaxNumLS());
+    }
+    else if(crossover() == "twx") {
+        result += "_twxl" + to_string(twxNumLoop());
+        result += "_twxp" + to_string(twxPerimeterSelectRate());
+    }
+
+    result += "_i";
+    if(numInitLocalSearch() == INT_MAX) result += "max";
+    else                                result += to_string(numInitLocalSearch());
+
+    result += "_seed" + to_string(seed);
+
+    return result;
+}
 
 void Parameter::setParam(const CommandLineArgument& arg, bool allRequired) {
     if(arg.existOption("-width") || allRequired)

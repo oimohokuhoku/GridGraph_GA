@@ -93,7 +93,7 @@ double transition(Parameter& param, int seed, string message = "") {
 
     string dirName;
     if(message == "")
-        dirName = RESULT_DIR + "/" + getTimeString();
+        dirName = RESULT_DIR + "/" + param.ToString(seed);
     else    
         dirName = RESULT_DIR + "/" + message;
     Directory::create(dirName);
@@ -142,12 +142,6 @@ void repeat(int numLoop,  Parameter& param, int seed, string message = "") {
         cout << endl;
     }
 
-    ofstream ofs(param.getProblemName() + ".csv");
-    cout << fixed;
-    for(int i = 0; i < numLoop; ++i)  {
-        cout << setprecision(15) << aspl[i] << " " << processTimes[i] << endl;
-        ofs << aspl[i] << "," << processTimes[i] << endl;
-    }
 
     delete[] aspl;
     delete[] processTimes;
